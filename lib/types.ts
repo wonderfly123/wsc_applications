@@ -2,6 +2,7 @@ export interface BEOAttachment {
   title: string
   url: string
   mimetype: string
+  category: 'Stamp Logo' | 'Delivery Map' | 'Other'
 }
 
 export interface BEOFields {
@@ -52,7 +53,7 @@ export const FIELD_MAP: Record<keyof BEOFields, string> = {
   eventNotes: 'd4ac6c86-d0d6-48e2-8958-b0ede74e3456',
 }
 
-export const ATTACHMENT_FIELD_IDS = [
-  '8fed248a-f14b-4c6a-85e8-5f7221acf219', // Stamp Logo File
-  '17d3b5bd-787f-4f93-a802-9daaf0217efa', // Map of Vendor Delivery Location
+export const ATTACHMENT_FIELDS: { id: string; category: BEOAttachment['category'] }[] = [
+  { id: '8fed248a-f14b-4c6a-85e8-5f7221acf219', category: 'Stamp Logo' },
+  { id: '17d3b5bd-787f-4f93-a802-9daaf0217efa', category: 'Delivery Map' },
 ]

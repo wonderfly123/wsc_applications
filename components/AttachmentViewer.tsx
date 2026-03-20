@@ -14,6 +14,10 @@ function FileIcon() {
 function Modal({ attachment, onClose }: { attachment: BEOAttachment; onClose: () => void }) {
   const isImage = attachment.mimetype.startsWith('image/')
   const isPdf = attachment.mimetype === 'application/pdf'
+  // Use Google Docs viewer for PDFs since ClickUp URLs force download
+  const pdfViewerUrl = isPdf
+    ? `https://docs.google.com/gview?url=${encodeURIComponent(attachment.url)}&embedded=true`
+    : ''
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 print:hidden" onClick={onClose}>
@@ -43,7 +47,7 @@ function Modal({ attachment, onClose }: { attachment: BEOAttachment; onClose: ()
           )}
           {isPdf && (
             <iframe
-              src={attachment.url}
+              src={pdfViewerUrl}
               className="w-[80vw] h-[75vh]"
               title={attachment.title}
             />
@@ -69,28 +73,46 @@ function Modal({ attachment, onClose }: { attachment: BEOAttachment; onClose: ()
   )
 }
 
+function AttachmentGroup({ label, items, onSelect }: { label: string; items: BEOAttachment[]; onSelect: (att: BEOAttachment) => void }) {
+  if (items.length === 0) return null
+  return (
+    <div>
+      <div className="text-[10px] font-medium uppercase tracking-[0.12em] text-[#9a9890] font-[family-name:var(--font-jost)] mb-2">
+        {label}
+      </div>
+      <div className="flex flex-col gap-1">
+        {items.map((att, i) => (
+          <button
+            key={i}
+            onClick={() => onSelect(att)}
+            className="flex items-center gap-2 text-left hover:bg-[#f5f4f0] rounded px-2 py-1.5 -mx-2 transition-colors"
+          >
+            <FileIcon />
+            <span className="text-[14px] text-[#878774] underline font-[family-name:var(--font-jost)]">
+              {att.title}
+            </span>
+          </button>
+        ))}
+      </div>
+    </div>
+  )
+}
+
 export function AttachmentViewer({ attachments }: { attachments: BEOAttachment[] }) {
   const [selected, setSelected] = useState<BEOAttachment | null>(null)
 
   if (attachments.length === 0) return null
 
+  const stampLogos = attachments.filter((a) => a.category === 'Stamp Logo')
+  const maps = attachments.filter((a) => a.category === 'Delivery Map')
+  const other = attachments.filter((a) => a.category === 'Other')
+
   return (
     <>
-      <div className="px-5 py-4">
-        <div className="flex flex-col gap-2">
-          {attachments.map((att, i) => (
-            <button
-              key={i}
-              onClick={() => setSelected(att)}
-              className="flex items-center gap-2 text-left hover:bg-[#f5f4f0] rounded px-2 py-1.5 -mx-2 transition-colors"
-            >
-              <FileIcon />
-              <span className="text-[14px] text-[#878774] underline font-[family-name:var(--font-jost)]">
-                {att.title}
-              </span>
-            </button>
-          ))}
-        </div>
+      <div className="px-5 py-4 flex flex-col gap-4">
+        <AttachmentGroup label="Stamp Logo" items={stampLogos} onSelect={setSelected} />
+        <AttachmentGroup label="Delivery Map" items={maps} onSelect={setSelected} />
+        <AttachmentGroup label="Other" items={other} onSelect={setSelected} />
       </div>
       {selected && <Modal attachment={selected} onClose={() => setSelected(null)} />}
     </>
