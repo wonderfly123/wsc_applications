@@ -63,10 +63,10 @@ export function BEODocument({ data, taskId }: { data: BEOData; taskId: string })
           <h1 className="font-[family-name:var(--font-cormorant)] font-light text-[34px] text-white tracking-[0.03em] leading-none">
             Windansea Coconuts
           </h1>
-          <p className="text-[10px] font-normal tracking-[0.2em] text-white/55 mt-[7px] uppercase font-[family-name:var(--font-jost)]">
+          <p className="text-[13px] font-normal tracking-[0.2em] text-white/55 mt-[7px] uppercase font-[family-name:var(--font-jost)]">
             Banquet Event Order
           </p>
-          <p className="text-[12px] font-normal tracking-[0.1em] text-white/40 mt-[5px] font-[family-name:var(--font-jost)]">
+          <p className="text-[11px] font-normal tracking-[0.1em] text-white/40 mt-[5px] font-[family-name:var(--font-jost)]">
             BEO # {taskId}
           </p>
         </div>
