@@ -29,6 +29,7 @@ export interface BEOFields {
 }
 
 export interface BEOData extends BEOFields {
+  eventName: string
   attachments: BEOAttachment[]
 }
 

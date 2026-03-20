@@ -25,6 +25,7 @@ const sampleData: BEOData = {
   deliveryInstructions: 'Use service entrance',
   eventNotes: 'Bride is allergic to peanuts',
   headcount: '200',
+  eventName: 'Smith-Jones Wedding',
   attachments: [],
 }
 
@@ -63,7 +64,6 @@ describe('BEODocument', () => {
     expect(screen.getByText('150')).toBeDefined()
     expect(screen.getByText('100')).toBeDefined()
     expect(screen.getByText('Yes')).toBeDefined()
-    expect(screen.getByText('Approved')).toBeDefined()
     expect(screen.getByText('Health Dept Permit')).toBeDefined()
   })
 

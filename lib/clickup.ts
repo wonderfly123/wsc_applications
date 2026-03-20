@@ -43,6 +43,7 @@ export function parseCustomFields(customFields: ClickUpCustomField[]): BEOData {
   const fieldById = new Map(customFields.map((f) => [f.id, f]))
 
   const result = {} as BEOData
+  result.eventName = '\u2014'
   for (const [key, fieldId] of Object.entries(FIELD_MAP)) {
     const field = fieldById.get(fieldId)
     ;(result as unknown as Record<string, unknown>)[key] = field ? resolveFieldValue(field) : '\u2014'
@@ -80,5 +81,7 @@ export async function fetchTask(taskId: string): Promise<BEOData | null> {
   if (!res.ok) return null
 
   const task = await res.json()
-  return parseCustomFields(task.custom_fields ?? [])
+  const data = parseCustomFields(task.custom_fields ?? [])
+  data.eventName = task.name ?? '\u2014'
+  return data
 }
