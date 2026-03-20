@@ -53,17 +53,27 @@ function FullWidthField({ label, value, notes }: { label: string; value: string;
   )
 }
 
-export function BEODocument({ data }: { data: BEOData }) {
+export function BEODocument({ data, taskId }: { data: BEOData; taskId: string }) {
   return (
     <div className="w-[820px] min-h-[1060px] mx-auto bg-white shadow-[0_6px_48px_rgba(0,0,0,0.10)] my-10 print:w-full print:my-0 print:shadow-none">
       {/* Header */}
-      <div className="bg-[#878774] pt-10 pb-[34px] px-14">
-        <h1 className="font-[family-name:var(--font-cormorant)] font-light text-[34px] text-white tracking-[0.03em] leading-none">
-          Windansea Coconuts
-        </h1>
-        <p className="text-[10px] font-normal tracking-[0.2em] text-white/55 mt-[7px] uppercase font-[family-name:var(--font-jost)]">
-          Banquet Event Order
-        </p>
+      <div className="bg-[#878774] pt-10 pb-[34px] px-14 flex justify-between items-start">
+        <div>
+          <h1 className="font-[family-name:var(--font-cormorant)] font-light text-[34px] text-white tracking-[0.03em] leading-none">
+            Windansea Coconuts
+          </h1>
+          <p className="text-[10px] font-normal tracking-[0.2em] text-white/55 mt-[7px] uppercase font-[family-name:var(--font-jost)]">
+            Banquet Event Order
+          </p>
+        </div>
+        <div className="text-right">
+          <div className="text-[14px] font-normal tracking-[0.12em] text-white/55 uppercase font-[family-name:var(--font-jost)]">
+            BEO #
+          </div>
+          <div className="font-[family-name:var(--font-cormorant)] font-light text-[16px] text-white tracking-[0.03em] mt-1">
+            {taskId}
+          </div>
+        </div>
       </div>
 
       <div className="px-14 pb-12">

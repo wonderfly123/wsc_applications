@@ -19,6 +19,11 @@ function resolveFieldValue(field: ClickUpCustomField): string {
     return option?.name ?? '\u2014'
   }
 
+  // Location fields (object with formatted_address)
+  if (typeof value === 'object' && value !== null && 'formatted_address' in value) {
+    return (value as { formatted_address: string }).formatted_address || '\u2014'
+  }
+
   // Boolean fields
   if (typeof value === 'boolean') return value ? 'Yes' : 'No'
 

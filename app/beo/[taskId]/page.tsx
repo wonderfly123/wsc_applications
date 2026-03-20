@@ -23,5 +23,5 @@ export default async function BEOPage({
     )
   }
 
-  return <BEODocument data={data} />
+  return <BEODocument data={data} taskId={params.taskId} />
 }

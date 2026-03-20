@@ -62,6 +62,20 @@ describe('parseCustomFields', () => {
     expect(data.stampStatus).toBe('Approved')
   })
 
+  it('extracts formatted_address from location fields', () => {
+    const fields = [
+      {
+        id: 'b92b1e46-363e-4453-9888-b530ecdeefce',
+        value: {
+          location: { lat: 39.28, lng: -76.58 },
+          formatted_address: '706 S Luzerne Ave, Baltimore, MD 21224, USA',
+        },
+      },
+    ]
+    const data = parseCustomFields(fields)
+    expect(data.eventLocation).toBe('706 S Luzerne Ave, Baltimore, MD 21224, USA')
+  })
+
   it('formats boolean fields as Yes/No', () => {
     const data = parseCustomFields(mockClickUpTask.custom_fields)
     expect(data.setupProvided).toBe('Yes')
