@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Windansea Coconuts — Banquet Event Order</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;500&family=Jost:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: #f0ede4;
+    font-family: 'Jost', sans-serif;
+    font-weight: 300;
+    color: #1e1d1a;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  .page {
+    width: 820px;
+    min-height: 1060px;
+    margin: 40px auto;
+    background: #ffffff;
+    box-shadow: 0 6px 48px rgba(0,0,0,0.10);
+  }
+
+  .header {
+    background: #878774;
+    padding: 40px 56px 34px;
+  }
+  .header h1 {
+    font-family: 'Cormorant Garamond', serif;
+    font-weight: 300;
+    font-size: 34px;
+    color: #fff;
+    letter-spacing: 0.03em;
+    line-height: 1;
+  }
+  .header p {
+    font-size: 10px;
+    font-weight: 400;
+    letter-spacing: 0.2em;
+    color: rgba(255,255,255,0.55);
+    margin-top: 7px;
+    text-transform: uppercase;
+  }
+
+  .body { padding: 0 56px 48px; }
+
+  .section { margin-top: 36px; }
+
+  .section-title {
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: #878774;
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .section-title::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: #e0ddd4;
+  }
+
+  .fields { border: 1px solid #d8d5cc; }
+
+  .row {
+    display: flex;
+    border-bottom: 1px solid #d8d5cc;
+  }
+  .row:last-child { border-bottom: none; }
+
+  .field {
+    flex: 1;
+    padding: 16px 20px;
+    border-right: 1px solid #d8d5cc;
+    min-width: 0;
+  }
+  .field:last-child { border-right: none; }
+
+  .field label {
+    display: block;
+    font-family: 'Jost', sans-serif;
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: #9a9890;
+    margin-bottom: 7px;
+  }
+
+  .field .value {
+    font-family: 'Cormorant Garamond', serif;
+    font-weight: 400;
+    font-size: 17px;
+    color: #1e1d1a;
+    line-height: 1.35;
+    min-height: 24px;
+  }
+
+  .notes .value { min-height: 64px; }
+
+  .footer {
+    margin: 0 56px;
+    padding: 18px 0;
+    border-top: 1px solid #e0ddd4;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .footer span {
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    color: #aaa9a4;
+  }
+
+  @media print {
+    body { background: white; }
+    .page { margin: 0; box-shadow: none; width: 100%; }
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <div class="header">
+    <h1>Windansea Coconuts</h1>
+    <p>Banquet Event Order</p>
+  </div>
+
+  <div class="body">
+
+    <!-- CLIENT INFORMATION -->
+    <div class="section">
+      <div class="section-title">Client Information</div>
+      <div class="fields">
+        <div class="row">
+          <div class="field">
+            <label>First Name</label>
+            <div class="value">{{CLIENT_FIRST_NAME}}</div>
+          </div>
+          <div class="field">
+            <label>Last Name</label>
+            <div class="value">{{CLIENT_LAST_NAME}}</div>
+          </div>
+        </div>
+        <div class="row">
+          <div class="field">
+            <label>Company</label>
+            <div class="value">{{COMPANY_NAME}}</div>
+          </div>
+          <div class="field">
+            <label>Phone</label>
+            <div class="value">{{CLIENT_PHONE}}</div>
+          </div>
+        </div>
+        <div class="row">
+          <div class="field">
+            <label>Email</label>
+            <div class="value">{{CLIENT_EMAIL}}</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- EVENT DETAILS -->
+    <div class="section">
+      <div class="section-title">Event Details</div>
+      <div class="fields">
+        <div class="row">
+          <div class="field">
+            <label>Event Type</label>
+            <div class="value">{{EVENT_TYPE}}</div>
+          </div>
+          <div class="field">
+            <label>Headcount</label>
+            <div class="value">{{HEADCOUNT}}</div>
+          </div>
+        </div>
+        <div class="row">
+          <div class="field">
+            <label>Service Start</label>
+            <div class="value">{{SERVICE_START}}</div>
+          </div>
+          <div class="field">
+            <label>Service End</label>
+            <div class="value">{{SERVICE_END}}</div>
+          </div>
+        </div>
+        <div class="row">
+          <div class="field">
+            <label>Event Location</label>
+            <div class="value">{{EVENT_LOCATION}}</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SERVICE & PACKAGE -->
+    <div class="section">
+      <div class="section-title">Service &amp; Package</div>
+      <div class="fields">
+        <div class="row">
+          <div class="field">
+            <label>Package</label>
+            <div class="value">{{PACKAGE}}</div>
+          </div>
+          <div class="field">
+            <label>Garnish</label>
+            <div class="value">{{GARNISH}}</div>
+          </div>
+        </div>
+        <div class="row">
+          <div class="field">
+            <label>Coconut Qty</label>
+            <div class="value">{{COCONUT_QTY}}</div>
+          </div>
+          <div class="field">
+            <label>Ready By Time of Service</label>
+            <div class="value">{{READY_BY}}</div>
+          </div>
+        </div>
+        <div class="row">
+          <div class="field">
+            <label>Setup Provided by Client</label>
+            <div class="value">{{SETUP_PROVIDED}}</div>
+          </div>
+          <div class="field">
+            <label>Stamp Status</label>
+            <div class="value">{{STAMP_STATUS}}</div>
+          </div>
+        </div>
+        <div class="row">
+          <div class="field">
+            <label>Certifications Needed</label>
+            <div class="value">{{CERTS_NEEDED}}</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- LOGISTICS -->
+    <div class="section">
+      <div class="section-title">Logistics</div>
+      <div class="fields">
+        <div class="row">
+          <div class="field">
+            <label>Load-in Location</label>
+            <div class="value">{{LOAD_IN_LOCATION}}</div>
+          </div>
+          <div class="field">
+            <label>Delivery Instructions</label>
+            <div class="value">{{DELIVERY_INSTRUCTIONS}}</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- NOTES -->
+    <div class="section">
+      <div class="section-title">Notes</div>
+      <div class="fields">
+        <div class="row">
+          <div class="field notes">
+            <label>Event Notes</label>
+            <div class="value">{{EVENT_NOTES}}</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="footer">
+    <span>windanseacoconuts.com</span>
+    <span>hello@windanseacoconuts.com</span>
+    <span>Confidential</span>
+  </div>
+
+</div>
+</body>
+</html>
