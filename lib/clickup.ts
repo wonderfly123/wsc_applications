@@ -45,7 +45,7 @@ export function parseCustomFields(customFields: ClickUpCustomField[]): BEOData {
   const result = {} as BEOData
   for (const [key, fieldId] of Object.entries(FIELD_MAP)) {
     const field = fieldById.get(fieldId)
-    ;(result as Record<string, unknown>)[key] = field ? resolveFieldValue(field) : '\u2014'
+    ;(result as unknown as Record<string, unknown>)[key] = field ? resolveFieldValue(field) : '\u2014'
   }
 
   // Extract attachments from attachment fields
