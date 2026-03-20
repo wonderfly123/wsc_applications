@@ -82,6 +82,9 @@ export function BEODocument({ data, taskId }: { data: BEOData; taskId: string })
         {/* Client Information */}
         <Section title="Client Information">
           <FieldRow>
+            <FullWidthField label="Event Name" value={data.eventName} />
+          </FieldRow>
+          <FieldRow>
             <Field label="First Name" value={data.clientFirstName} />
             <Field label="Last Name" value={data.clientLastName} last />
           </FieldRow>
@@ -89,11 +92,8 @@ export function BEODocument({ data, taskId }: { data: BEOData; taskId: string })
             <Field label="Company" value={data.companyName} />
             <Field label="Phone" value={data.clientPhone} last />
           </FieldRow>
-          <FieldRow>
-            <FullWidthField label="Email" value={data.clientEmail} />
-          </FieldRow>
           <FieldRow last>
-            <FullWidthField label="Event Name" value={data.eventName} />
+            <FullWidthField label="Email" value={data.clientEmail} />
           </FieldRow>
         </Section>
 
