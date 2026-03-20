@@ -66,15 +66,16 @@ export function BEODocument({ data, taskId }: { data: BEOData; taskId: string })
           <p className="text-[10px] font-normal tracking-[0.2em] text-white/55 mt-[7px] uppercase font-[family-name:var(--font-jost)]">
             Banquet Event Order
           </p>
+          <p className="text-[12px] font-normal tracking-[0.1em] text-white/40 mt-[5px] font-[family-name:var(--font-jost)]">
+            BEO # {taskId}
+          </p>
         </div>
-        <div className="text-right">
-          <div className="text-[14px] font-normal tracking-[0.12em] text-white/55 uppercase font-[family-name:var(--font-jost)]">
-            BEO #
-          </div>
-          <div className="font-[family-name:var(--font-cormorant)] font-light text-[16px] text-white tracking-[0.03em] mt-1">
-            {taskId}
-          </div>
-        </div>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src="/logo.png"
+          alt="Windansea Coconuts"
+          className="h-16 w-auto object-contain"
+        />
       </div>
 
       <div className="px-14 pb-12">
@@ -97,7 +98,7 @@ export function BEODocument({ data, taskId }: { data: BEOData; taskId: string })
         <Section title="Event Details">
           <FieldRow>
             <Field label="Event Type" value={data.eventType} />
-            <Field label="Headcount" value={'\u2014'} last />
+            <Field label="Headcount" value={data.headcount} last />
           </FieldRow>
           <FieldRow>
             <Field label="Service Start" value={data.serviceStart} />

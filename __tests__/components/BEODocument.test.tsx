@@ -24,6 +24,7 @@ const sampleData: BEOData = {
   loadInLocation: 'Loading Dock B',
   deliveryInstructions: 'Use service entrance',
   eventNotes: 'Bride is allergic to peanuts',
+  headcount: '200',
   attachments: [],
 }
 

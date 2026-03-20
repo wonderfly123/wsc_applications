@@ -25,6 +25,7 @@ export interface BEOFields {
   loadInLocation: string
   deliveryInstructions: string
   eventNotes: string
+  headcount: string
 }
 
 export interface BEOData extends BEOFields {
@@ -51,6 +52,7 @@ export const FIELD_MAP: Record<keyof BEOFields, string> = {
   loadInLocation: '967038c5-4d18-41d5-8c63-f01bf20ece7a',
   deliveryInstructions: 'b4457a6a-5d84-4505-9e9b-6883303331b3',
   eventNotes: 'd4ac6c86-d0d6-48e2-8958-b0ede74e3456',
+  headcount: '019ed06a-6a3a-4782-877f-ec4e94b0ac30',
 }
 
 export const ATTACHMENT_FIELDS: { id: string; category: BEOAttachment['category'] }[] = [
