@@ -24,6 +24,7 @@ const sampleData: BEOData = {
   loadInLocation: 'Loading Dock B',
   deliveryInstructions: 'Use service entrance',
   eventNotes: 'Bride is allergic to peanuts',
+  attachments: [],
 }
 
 afterEach(() => {
@@ -84,9 +85,12 @@ describe('BEODocument', () => {
   })
 
   it('renders em dashes for missing data', () => {
-    const emptyData: BEOData = Object.fromEntries(
-      Object.keys(sampleData).map((k) => [k, '\u2014'])
-    ) as BEOData
+    const emptyData: BEOData = {
+      ...Object.fromEntries(
+        Object.keys(sampleData).filter((k) => k !== 'attachments').map((k) => [k, '\u2014'])
+      ),
+      attachments: [],
+    } as BEOData
     render(<BEODocument data={emptyData} taskId="abc123" />)
     const dashes = screen.getAllByText('\u2014')
     expect(dashes.length).toBeGreaterThanOrEqual(19)

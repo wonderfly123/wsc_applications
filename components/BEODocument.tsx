@@ -1,5 +1,6 @@
 import React from 'react'
 import { BEOData } from '@/lib/types'
+import { AttachmentViewer } from './AttachmentViewer'
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
@@ -140,6 +141,13 @@ export function BEODocument({ data, taskId }: { data: BEOData; taskId: string })
             <FullWidthField label="Event Notes" value={data.eventNotes} notes />
           </FieldRow>
         </Section>
+
+        {/* Attachments */}
+        {data.attachments.length > 0 && (
+          <Section title="Attachments">
+            <AttachmentViewer attachments={data.attachments} />
+          </Section>
+        )}
       </div>
 
       {/* Footer */}

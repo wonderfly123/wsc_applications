@@ -1,4 +1,4 @@
-import { BEOData, FIELD_MAP } from './types'
+import { BEOData, BEOAttachment, FIELD_MAP, ATTACHMENT_FIELD_IDS } from './types'
 
 interface ClickUpCustomField {
   id: string
@@ -45,8 +45,23 @@ export function parseCustomFields(customFields: ClickUpCustomField[]): BEOData {
   const result = {} as BEOData
   for (const [key, fieldId] of Object.entries(FIELD_MAP)) {
     const field = fieldById.get(fieldId)
-    result[key as keyof BEOData] = field ? resolveFieldValue(field) : '\u2014'
+    ;(result as Record<string, unknown>)[key] = field ? resolveFieldValue(field) : '\u2014'
   }
+
+  // Extract attachments from attachment fields
+  const attachments: BEOAttachment[] = []
+  for (const fieldId of ATTACHMENT_FIELD_IDS) {
+    const field = fieldById.get(fieldId)
+    if (field?.value && Array.isArray(field.value)) {
+      for (const att of field.value) {
+        if (att.url) {
+          attachments.push({ title: att.title ?? '', url: att.url, mimetype: att.mimetype ?? '' })
+        }
+      }
+    }
+  }
+  result.attachments = attachments
+
   return result
 }
 

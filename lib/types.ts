@@ -1,4 +1,10 @@
-export interface BEOData {
+export interface BEOAttachment {
+  title: string
+  url: string
+  mimetype: string
+}
+
+export interface BEOFields {
   clientFirstName: string
   clientLastName: string
   companyName: string
@@ -20,7 +26,11 @@ export interface BEOData {
   eventNotes: string
 }
 
-export const FIELD_MAP: Record<keyof BEOData, string> = {
+export interface BEOData extends BEOFields {
+  attachments: BEOAttachment[]
+}
+
+export const FIELD_MAP: Record<keyof BEOFields, string> = {
   clientFirstName: '6448e40e-5c59-4aeb-b99a-5755536b9463',
   clientLastName: '7ec644ea-814a-4a79-ab52-4a4543466cfb',
   companyName: '75e86982-b682-4c56-86c4-2007b87d89df',
@@ -41,3 +51,8 @@ export const FIELD_MAP: Record<keyof BEOData, string> = {
   deliveryInstructions: 'b4457a6a-5d84-4505-9e9b-6883303331b3',
   eventNotes: 'd4ac6c86-d0d6-48e2-8958-b0ede74e3456',
 }
+
+export const ATTACHMENT_FIELD_IDS = [
+  '8fed248a-f14b-4c6a-85e8-5f7221acf219', // Stamp Logo File
+  '17d3b5bd-787f-4f93-a802-9daaf0217efa', // Map of Vendor Delivery Location
+]
