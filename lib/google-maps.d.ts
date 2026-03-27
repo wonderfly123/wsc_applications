@@ -5,10 +5,18 @@ declare global {
         places: {
           Autocomplete: new (
             input: HTMLInputElement,
-            opts?: { types?: string[]; componentRestrictions?: { country: string } }
+            opts?: { types?: string[]; componentRestrictions?: { country: string }; fields?: string[] }
           ) => {
             addListener: (event: string, handler: () => void) => void
-            getPlace: () => { formatted_address?: string }
+            getPlace: () => {
+              formatted_address?: string
+              geometry?: {
+                location: {
+                  lat: () => number
+                  lng: () => number
+                }
+              }
+            }
           }
         }
       }

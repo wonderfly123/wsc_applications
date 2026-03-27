@@ -53,9 +53,17 @@ export async function POST(
           }
           break
         }
-        case 'location':
-          value = { location: { formatted_address: rawValue } }
+        case 'location': {
+          const lat = formData.get(`${field.name}_lat`) as string | null
+          const lng = formData.get(`${field.name}_lng`) as string | null
+          if (lat && lng) {
+            value = { formatted_address: rawValue, location: { lat: parseFloat(lat), lng: parseFloat(lng) } }
+          } else {
+            // Skip if no coordinates — ClickUp requires lat/lng for location fields
+            continue
+          }
           break
+        }
         case 'phone': {
           // Normalize to E.164: strip non-digits, prepend +1 if needed
           const digits = rawValue.replace(/\D/g, '')
@@ -91,12 +99,14 @@ export async function POST(
     // Update all custom fields
     await updateTaskFields(taskId, fieldUpdates)
 
-    // Upload file attachments
+    // Upload file attachments with prefixed filenames
     for (const upload of UPLOAD_FIELDS) {
       const file = formData.get(upload.name) as File | null
       if (file && file.size > 0) {
-        await uploadAttachment(taskId, file)
-        console.log(`Uploaded ${upload.name}: ${file.name}`)
+        const prefixedName = `${upload.prefix} ${file.name}`
+        const renamedFile = new File([file], prefixedName, { type: file.type })
+        await uploadAttachment(taskId, renamedFile)
+        console.log(`Uploaded ${upload.name}: ${prefixedName}`)
       }
     }
 

@@ -85,6 +85,8 @@ function PlacesAutocomplete({ name, required, placeholder, baseClass }: {
 }) {
   const inputRef = useRef<HTMLInputElement>(null)
   const [value, setValue] = useState('')
+  const [lat, setLat] = useState('')
+  const [lng, setLng] = useState('')
 
   useEffect(() => {
     const input = inputRef.current
@@ -93,12 +95,17 @@ function PlacesAutocomplete({ name, required, placeholder, baseClass }: {
     const autocomplete = new window.google.maps.places.Autocomplete(input, {
       types: ['address'],
       componentRestrictions: { country: 'us' },
+      fields: ['formatted_address', 'geometry'],
     })
 
     autocomplete.addListener('place_changed', () => {
       const place = autocomplete.getPlace()
       if (place.formatted_address) {
         setValue(place.formatted_address)
+      }
+      if (place.geometry?.location) {
+        setLat(String(place.geometry.location.lat()))
+        setLng(String(place.geometry.location.lng()))
       }
     })
   }, [])
@@ -116,6 +123,8 @@ function PlacesAutocomplete({ name, required, placeholder, baseClass }: {
         autoComplete="off"
       />
       <input type="hidden" name={name} value={value} />
+      <input type="hidden" name={`${name}_lat`} value={lat} />
+      <input type="hidden" name={`${name}_lng`} value={lng} />
     </>
   )
 }
@@ -167,6 +176,7 @@ function FormField({ field }: { field: IntakeFieldDef }) {
           required={field.required}
           placeholder={field.placeholder}
           className={baseClass}
+          {...(field.type === 'number' ? { min: 0 } : {})}
         />
       )}
     </div>

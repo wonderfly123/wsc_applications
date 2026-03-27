@@ -44,10 +44,10 @@ export const INTAKE_FIELDS: IntakeFieldDef[] = [
   { name: 'eventNotes', label: 'Event Notes', type: 'textarea', required: true, clickupFieldId: 'd4ac6c86-d0d6-48e2-8958-b0ede74e3456', clickupFieldType: 'text', placeholder: 'Any details you can provide to make this an extra special event.', section: 'additional' },
 ]
 
-// File upload fields — these use ClickUp's task attachment API, not custom fields
+// File upload fields — uploaded as task attachments with prefixed filenames
 export const UPLOAD_FIELDS = [
-  { name: 'stampLogo', label: 'Stamp Logo File', required: true, accept: 'image/png,image/jpeg', helpText: 'Upload your logo image (png or jpg)' },
-  { name: 'deliveryMap', label: 'Map of Vendor Delivery Location', required: false, accept: 'image/png,image/jpeg,application/pdf', helpText: 'Upload an event/delivery map if available' },
+  { name: 'stampLogo', label: 'Stamp Logo File', prefix: '[STAMP LOGO]', required: true, accept: 'image/png,image/jpeg', helpText: 'Upload your logo image (png or jpg)' },
+  { name: 'deliveryMap', label: 'Map of Vendor Delivery Location', prefix: '[DELIVERY MAP]', required: false, accept: 'image/png,image/jpeg,application/pdf', helpText: 'Upload an event/delivery map if available' },
 ]
 
 // Field ID for marking intake as complete after form submission

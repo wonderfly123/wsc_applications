@@ -146,5 +146,20 @@ export async function fetchTask(taskId: string): Promise<BEOData | null> {
   const task = await res.json()
   const data = parseCustomFields(task.custom_fields ?? [])
   data.eventName = task.name ?? '\u2014'
+
+  // Also check task-level attachments for prefixed uploads
+  if (task.attachments && Array.isArray(task.attachments)) {
+    for (const att of task.attachments) {
+      const title = att.title || att.name || ''
+      const url = att.url || ''
+      const mimetype = att.mimetype || ''
+      if (title.startsWith('[STAMP LOGO]')) {
+        data.attachments.push({ title, url, mimetype, category: 'Stamp Logo' })
+      } else if (title.startsWith('[DELIVERY MAP]')) {
+        data.attachments.push({ title, url, mimetype, category: 'Delivery Map' })
+      }
+    }
+  }
+
   return data
 }
