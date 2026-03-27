@@ -29,20 +29,12 @@ export default function IntakeIndexPage() {
         </h1>
         <p className="text-base text-[#878774] font-[family-name:var(--font-jost)] leading-relaxed mb-6">
           Each client receives a unique intake form link via email when their event is confirmed.
-          If you can&apos;t find your link, check your inbox for an email from Windansea Coconuts.
+          If you can&apos;t find your link, check your inbox for an email from Windansea Coconuts
+          or reach out to{' '}
+          <a href="mailto:harrison@windanseacoconuts.com" className="underline text-[#8b6914]">
+            harrison@windanseacoconuts.com
+          </a>.
         </p>
-        <div className="bg-white rounded-xl border border-[#e0ddd4] p-6 text-left">
-          <p className="text-[15px] text-[#1e1d1a] font-[family-name:var(--font-jost)] font-medium mb-2">
-            For the Windansea team:
-          </p>
-          <p className="text-sm text-[#878774] font-[family-name:var(--font-jost)] leading-relaxed">
-            Each intake form link is stored in the ClickUp task under the
-            <span className="font-medium text-[#1e1d1a]"> Unique Intake Form </span>
-            field. If the client doesn&apos;t have a task yet, create the deal in Pipedrive
-            and move it to <span className="font-medium text-[#1e1d1a]">Closed Won</span> to
-            trigger the automation.
-          </p>
-        </div>
       </div>
     </div>
   )
