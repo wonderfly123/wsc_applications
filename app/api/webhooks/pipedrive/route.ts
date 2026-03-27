@@ -7,6 +7,11 @@ const CLICKUP_FIELDS = {
   pipedriveDealId: '658579ec-2913-478e-9613-cade4ba6cf68',
   pipedriveDealTitle: '9d8e3b50-556e-4039-8062-7a2bb4ac4fee',
   intakeFormComplete: 'dbeda913-50e7-4988-9f1d-d28ec26a9a6d', // Options: Yes=0, No=1
+  clientEmail: 'a4316b37-4646-4db8-93d7-c37561d17a77',
+  clientPhone: '2d0cc4d7-91e9-4d8d-bc0e-43321cfa1d48',
+  clientFirstName: '6448e40e-5c59-4aeb-b99a-5755536b9463',
+  clientLastName: '7ec644ea-814a-4a79-ab52-4a4543466cfb',
+  coconutQty: '3e9943e1-4e51-466b-9d6d-f01e862a1bec',
 }
 
 export async function POST(req: NextRequest) {
@@ -43,15 +48,28 @@ export async function POST(req: NextRequest) {
       coconutQty ? `Coconuts: ${coconutQty}` : '',
     ].filter(Boolean).join('\n')
 
+    // Split contact name into first/last
+    const nameParts = contactName.trim().split(/\s+/)
+    const firstName = nameParts[0] || ''
+    const lastName = nameParts.slice(1).join(' ') || ''
+
     // Custom fields to set on task creation
-    const customFields = [
+    const customFields: Array<{ id: string; value: unknown }> = [
       { id: CLICKUP_FIELDS.pipedriveDealId, value: pipedriveDealId },
       { id: CLICKUP_FIELDS.pipedriveDealTitle, value: dealTitle },
       { id: CLICKUP_FIELDS.intakeFormComplete, value: 1 }, // "No" on creation
+      { id: CLICKUP_FIELDS.clientEmail, value: contactEmail },
+      { id: CLICKUP_FIELDS.clientPhone, value: contactPhone },
     ]
+    if (firstName) customFields.push({ id: CLICKUP_FIELDS.clientFirstName, value: firstName })
+    if (lastName) customFields.push({ id: CLICKUP_FIELDS.clientLastName, value: lastName })
+    if (coconutQty) customFields.push({ id: CLICKUP_FIELDS.coconutQty, value: Number(coconutQty) })
+
+    // Parse event date for task start date
+    const startDate = eventDate ? new Date(eventDate).getTime() : undefined
 
     // 1. Create ClickUp task with Pipedrive fields pre-populated
-    const task = await createTask(dealTitle, description, customFields)
+    const task = await createTask(dealTitle, description, customFields, { startDate })
     console.log('ClickUp task created:', task.id)
 
     // 2. Build intake URL and send email
@@ -61,7 +79,6 @@ export async function POST(req: NextRequest) {
     await sendIntakeEmail({
       to: contactEmail,
       clientName: contactName.split(' ')[0] || 'there',
-      eventName: dealTitle,
       intakeUrl,
     })
     console.log('Intake email sent to:', contactEmail)

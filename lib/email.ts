@@ -49,27 +49,26 @@ export async function sendErrorAlert(params: {
 export async function sendIntakeEmail(params: {
   to: string
   clientName: string
-  eventName: string
   intakeUrl: string
 }) {
-  const { to, clientName, eventName, intakeUrl } = params
+  const { to, clientName, intakeUrl } = params
   const transporter = getTransporter()
 
   await transporter.sendMail({
-    from: `Windansea Coconuts <${SMTP_USER}>`,
+    from: `Harrison at Windansea Coconuts <${SMTP_USER}>`,
     to,
-    subject: `Event Intake Form — ${eventName}`,
+    subject: `Your Event with Windansea Coconuts`,
     html: `
-      <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
-        <h2>Hi ${clientName},</h2>
-        <p>Thank you for booking with Windansea Coconuts! Please fill out the intake form below so we can finalize the details for your event.</p>
-        <p style="margin: 24px 0;">
-          <a href="${intakeUrl}" style="background: #1e1d1a; color: #f0ede4; padding: 12px 24px; text-decoration: none; border-radius: 4px;">
-            Fill Out Intake Form
-          </a>
+      <div style="font-family: Georgia, 'Times New Roman', serif; max-width: 600px; margin: 0 auto; color: #1e1d1a; font-size: 15px; line-height: 1.7;">
+        <p>Hi ${clientName},</p>
+        <p>We're so excited to be part of your special day! To ensure everything is perfectly tailored to your vision, we've put together a quick event details form for you.</p>
+        <p>When you have a moment, please <a href="${intakeUrl}" style="color: #8b6914;">fill out your event details here</a>.</p>
+        <p>This helps our team prepare every detail so your experience is nothing short of exceptional.</p>
+        <p style="margin-top: 28px;">
+          Warmly,<br/>
+          Harrison<br/>
+          <span style="color: #878774;">Windansea Coconuts</span>
         </p>
-        <p style="color: #666; font-size: 14px;">Event: ${eventName}</p>
-        <p style="color: #999; font-size: 12px;">If you have questions, reply to this email.</p>
       </div>
     `,
   })

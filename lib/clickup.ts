@@ -69,7 +69,8 @@ export function parseCustomFields(customFields: ClickUpCustomField[]): BEOData {
 export async function createTask(
   name: string,
   description: string,
-  customFields?: Array<{ id: string; value: unknown }>
+  customFields?: Array<{ id: string; value: unknown }>,
+  options?: { startDate?: number; dueDate?: number }
 ): Promise<{ id: string; name: string }> {
   const apiKey = process.env.CLICKUP_API_KEY
   const listId = process.env.CLICKUP_LIST_ID
@@ -80,6 +81,8 @@ export async function createTask(
   if (customFields?.length) {
     body.custom_fields = customFields
   }
+  if (options?.startDate) body.start_date = options.startDate
+  if (options?.dueDate) body.due_date = options.dueDate
 
   const res = await fetch(`https://api.clickup.com/api/v2/list/${listId}/task`, {
     method: 'POST',
