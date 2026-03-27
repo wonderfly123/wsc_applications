@@ -63,8 +63,8 @@ export async function sendIntakeEmail(params: {
         <p>Hi ${clientName},</p>
         <p>We're excited to be part of your event! To make sure everything goes smoothly, please fill out our quick event details form.</p>
         <p><a href="${intakeUrl}" style="color: #1a73e8;">Fill out your event details here</a></p>
-        <p style="font-size: 12px; color: #888;">This is your unique form link — please bookmark it if you plan to fill it out later.</p>
-        <p>Thanks!<br/>Windansea Coconuts</p>
+        <p>This is your unique form link — please bookmark it if you plan to fill it out later.</p>
+        <p>Warmly,<br/>Windansea Coconuts</p>
       </div>
     `,
   })
