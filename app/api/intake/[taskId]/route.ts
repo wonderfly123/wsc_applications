@@ -56,10 +56,11 @@ export async function POST(
         case 'location': {
           const lat = formData.get(`${field.name}_lat`) as string | null
           const lng = formData.get(`${field.name}_lng`) as string | null
+          console.log(`Location ${field.name}: address="${rawValue}" lat="${lat}" lng="${lng}"`)
           if (lat && lng) {
             value = { formatted_address: rawValue, location: { lat: parseFloat(lat), lng: parseFloat(lng) } }
           } else {
-            // Skip if no coordinates — ClickUp requires lat/lng for location fields
+            // No lat/lng from client — skip, ClickUp requires coordinates
             continue
           }
           break
