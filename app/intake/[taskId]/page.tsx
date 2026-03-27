@@ -43,7 +43,7 @@ export default async function IntakePage({
       </div>
 
       {/* Form */}
-      <div className="max-w-2xl mx-auto px-6 py-6 pb-16">
+      <div className="max-w-2xl mx-auto px-6 py-6 pb-16 overflow-hidden">
         <IntakeForm taskId={params.taskId} />
       </div>
     </div>

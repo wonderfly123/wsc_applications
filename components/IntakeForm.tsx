@@ -79,7 +79,7 @@ function CustomSelect({ name, options, required, placeholder = 'Select...' }: {
 
 function FormField({ field }: { field: IntakeFieldDef }) {
   const baseClass =
-    'w-full rounded-lg px-4 py-3 border border-[#d8d5cc] bg-white text-[#1e1d1a] font-[family-name:var(--font-jost)] text-[15px] placeholder:text-[#bbb8b0] focus:outline-none focus:border-[#8b6914] focus:ring-2 focus:ring-[#8b6914]/20 transition-all'
+    'w-full max-w-full rounded-lg px-4 py-3 border border-[#d8d5cc] bg-white text-[#1e1d1a] font-[family-name:var(--font-jost)] text-[15px] placeholder:text-[#bbb8b0] focus:outline-none focus:border-[#8b6914] focus:ring-2 focus:ring-[#8b6914]/20 transition-all box-border'
 
   return (
     <div>
