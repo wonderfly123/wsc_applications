@@ -120,7 +120,7 @@ export function BEODocument({ data, taskId }: { data: BEOData; taskId: string })
           </FieldRow>
           <FieldRow>
             <Field label="Coconut Qty" value={data.coconutQty} />
-            <Field label="Ready By Time of Service" value={data.readyBy} last />
+            <Field label="Amount of Coconuts Opened by Time of Service" value={data.readyBy} last />
           </FieldRow>
           <FieldRow>
             <Field label="Setup Provided by Client" value={data.setupProvided} />

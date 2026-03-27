@@ -66,6 +66,66 @@ export function parseCustomFields(customFields: ClickUpCustomField[]): BEOData {
   return result
 }
 
+export async function createTask(
+  name: string,
+  description: string,
+  customFields?: Array<{ id: string; value: unknown }>
+): Promise<{ id: string; name: string }> {
+  const apiKey = process.env.CLICKUP_API_KEY
+  const listId = process.env.CLICKUP_LIST_ID
+  if (!apiKey) throw new Error('CLICKUP_API_KEY not set')
+  if (!listId) throw new Error('CLICKUP_LIST_ID not set')
+
+  const body: Record<string, unknown> = { name, description }
+  if (customFields?.length) {
+    body.custom_fields = customFields
+  }
+
+  const res = await fetch(`https://api.clickup.com/api/v2/list/${listId}/task`, {
+    method: 'POST',
+    headers: {
+      Authorization: apiKey,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(body),
+  })
+
+  if (!res.ok) {
+    throw new Error(`ClickUp createTask failed: ${res.status}`)
+  }
+
+  const task = await res.json()
+  return { id: task.id, name: task.name }
+}
+
+export async function updateTaskFields(
+  taskId: string,
+  fields: Array<{ id: string; value: unknown }>
+): Promise<void> {
+  const apiKey = process.env.CLICKUP_API_KEY
+  if (!apiKey) throw new Error('CLICKUP_API_KEY not set')
+
+  const results = await Promise.allSettled(
+    fields.map((field) =>
+      fetch(`https://api.clickup.com/api/v2/task/${taskId}/field/${field.id}`, {
+        method: 'POST',
+        headers: {
+          Authorization: apiKey,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ value: field.value }),
+      }).then((res) => {
+        if (!res.ok) throw new Error(`ClickUp field update failed: ${field.id} — ${res.status}`)
+      })
+    )
+  )
+
+  const failures = results.filter((r) => r.status === 'rejected') as PromiseRejectedResult[]
+  if (failures.length > 0) {
+    throw new Error(failures.map((f) => f.reason?.message || f.reason).join('; '))
+  }
+}
+
 export async function fetchTask(taskId: string): Promise<BEOData | null> {
   const apiKey = process.env.CLICKUP_API_KEY
   if (!apiKey) throw new Error('CLICKUP_API_KEY not set')
