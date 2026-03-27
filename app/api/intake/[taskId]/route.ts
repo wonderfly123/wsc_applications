@@ -54,7 +54,10 @@ export async function POST(
           break
         }
         case 'location':
-          value = { formatted_address: rawValue }
+          value = { location: { formatted_address: rawValue } }
+          break
+        case 'phone':
+          value = { phone_number: rawValue }
           break
         default:
           value = rawValue
