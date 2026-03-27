@@ -212,7 +212,7 @@ function renderFieldGrid(fields: IntakeFieldDef[]) {
 
     if (field.half && next?.half) {
       rows.push(
-        <div key={field.name} className="grid grid-cols-2 gap-4">
+        <div key={field.name} className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <FormField field={field} />
           <FormField field={next} />
         </div>
