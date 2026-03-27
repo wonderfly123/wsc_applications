@@ -59,16 +59,12 @@ export async function sendIntakeEmail(params: {
     to,
     subject: `Action Needed - We Need Your Event Details`,
     html: `
-      <div style="font-family: Georgia, 'Times New Roman', serif; max-width: 600px; margin: 0 auto; color: #1e1d1a; font-size: 15px; line-height: 1.7;">
+      <div style="font-family: Arial, sans-serif; max-width: 600px; color: #333; font-size: 14px; line-height: 1.6;">
         <p>Hi ${clientName},</p>
-        <p>We're so excited to be part of your special day! To ensure everything is perfectly tailored to your vision, we've put together a quick event details form for you.</p>
-        <p>When you have a moment, please <a href="${intakeUrl}" style="color: #8b6914;">fill out your event details here</a>.</p>
-        <p>This helps our team prepare every detail so your experience is nothing short of exceptional.</p>
-        <p style="font-size: 13px; color: #9a9890; font-style: italic;">This is your unique form link — please bookmark it if you plan to fill it out later.</p>
-        <p style="margin-top: 28px;">
-          Warmly,<br/>
-          <span style="color: #878774;">Windansea Coconuts</span>
-        </p>
+        <p>We're excited to be part of your event! To make sure everything goes smoothly, please fill out our quick event details form.</p>
+        <p><a href="${intakeUrl}" style="color: #1a73e8;">Fill out your event details here</a></p>
+        <p style="font-size: 12px; color: #888;">This is your unique form link — please bookmark it if you plan to fill it out later.</p>
+        <p>Thanks!<br/>Windansea Coconuts</p>
       </div>
     `,
   })
