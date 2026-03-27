@@ -77,6 +77,49 @@ function CustomSelect({ name, options, required, placeholder = 'Select...' }: {
   )
 }
 
+function PlacesAutocomplete({ name, required, placeholder, baseClass }: {
+  name: string
+  required: boolean
+  placeholder?: string
+  baseClass: string
+}) {
+  const inputRef = useRef<HTMLInputElement>(null)
+  const [value, setValue] = useState('')
+
+  useEffect(() => {
+    const input = inputRef.current
+    if (!input || !window.google?.maps?.places) return
+
+    const autocomplete = new window.google.maps.places.Autocomplete(input, {
+      types: ['address'],
+      componentRestrictions: { country: 'us' },
+    })
+
+    autocomplete.addListener('place_changed', () => {
+      const place = autocomplete.getPlace()
+      if (place.formatted_address) {
+        setValue(place.formatted_address)
+      }
+    })
+  }, [])
+
+  return (
+    <>
+      <input
+        ref={inputRef}
+        type="text"
+        value={value}
+        onChange={(e) => setValue(e.target.value)}
+        required={required}
+        placeholder={placeholder}
+        className={baseClass}
+        autoComplete="off"
+      />
+      <input type="hidden" name={name} value={value} />
+    </>
+  )
+}
+
 function FormField({ field }: { field: IntakeFieldDef }) {
   const baseClass =
     'w-full max-w-full rounded-lg px-4 py-3 border border-[#d8d5cc] bg-white text-[#1e1d1a] font-[family-name:var(--font-jost)] text-[15px] placeholder:text-[#bbb8b0] focus:outline-none focus:border-[#8b6914] focus:ring-2 focus:ring-[#8b6914]/20 transition-all box-border'
@@ -99,6 +142,13 @@ function FormField({ field }: { field: IntakeFieldDef }) {
           name={field.name}
           options={field.options || []}
           required={field.required}
+        />
+      ) : field.clickupFieldType === 'location' ? (
+        <PlacesAutocomplete
+          name={field.name}
+          required={field.required}
+          placeholder={field.placeholder}
+          baseClass={baseClass}
         />
       ) : field.type === 'textarea' ? (
         <textarea

@@ -1,5 +1,6 @@
 import { IntakeForm } from '@/components/IntakeForm'
 import Image from 'next/image'
+import Script from 'next/script'
 
 export const dynamic = 'force-dynamic'
 
@@ -8,8 +9,15 @@ export default async function IntakePage({
 }: {
   params: { taskId: string }
 }) {
+  const mapsKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY
   return (
     <div className="min-h-screen bg-[#f0ede4]">
+      {mapsKey && (
+        <Script
+          src={`https://maps.googleapis.com/maps/api/js?key=${mapsKey}&libraries=places`}
+          strategy="beforeInteractive"
+        />
+      )}
       {/* Header bar */}
       <div className="bg-[#878774]">
         <div className="max-w-2xl mx-auto px-6 py-5 flex items-center gap-4">
