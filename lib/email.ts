@@ -57,13 +57,14 @@ export async function sendIntakeEmail(params: {
   await transporter.sendMail({
     from: `Windansea Coconuts <${SMTP_USER}>`,
     to,
-    subject: `Your Event with Windansea Coconuts`,
+    subject: `Action Needed - We Need Your Event Details`,
     html: `
       <div style="font-family: Georgia, 'Times New Roman', serif; max-width: 600px; margin: 0 auto; color: #1e1d1a; font-size: 15px; line-height: 1.7;">
         <p>Hi ${clientName},</p>
         <p>We're so excited to be part of your special day! To ensure everything is perfectly tailored to your vision, we've put together a quick event details form for you.</p>
         <p>When you have a moment, please <a href="${intakeUrl}" style="color: #8b6914;">fill out your event details here</a>.</p>
         <p>This helps our team prepare every detail so your experience is nothing short of exceptional.</p>
+        <p style="font-size: 13px; color: #9a9890; font-style: italic;">This is your unique form link — please bookmark it if you plan to fill it out later.</p>
         <p style="margin-top: 28px;">
           Warmly,<br/>
           <span style="color: #878774;">Windansea Coconuts</span>
