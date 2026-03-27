@@ -48,8 +48,8 @@ export default async function IntakePage({
           Thanks for booking with us! Please complete the details below so we can deliver
           a seamless experience at your event. This takes less than 5 minutes.
         </p>
-        <p className="text-sm text-[#9a9890] font-[family-name:var(--font-jost)] mt-3 italic">
-          This is your unique intake form link — please bookmark it if you plan to come back and fill it out later.
+        <p className="text-sm text-[#9a9890] font-[family-name:var(--font-jost)] mt-3">
+          This link is unique to your event. If you need to come back later, bookmark this page or find the link in your email.
         </p>
       </div>
 
