@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createTask } from '@/lib/clickup'
+import { createTask, updateTaskFields } from '@/lib/clickup'
 import { sendIntakeEmail, sendErrorAlert } from '@/lib/email'
 
 // ClickUp custom field IDs
@@ -12,6 +12,7 @@ const CLICKUP_FIELDS = {
   clientFirstName: '6448e40e-5c59-4aeb-b99a-5755536b9463',
   clientLastName: '7ec644ea-814a-4a79-ab52-4a4543466cfb',
   coconutQty: '3e9943e1-4e51-466b-9d6d-f01e862a1bec',
+  uniqueIntakeForm: '4f498bf1-9f98-4c8d-a2ce-b4499c8fec6c',
 }
 
 export async function POST(req: NextRequest) {
@@ -72,10 +73,15 @@ export async function POST(req: NextRequest) {
     const task = await createTask(dealTitle, description, customFields, { startDate })
     console.log('ClickUp task created:', task.id)
 
-    // 2. Build intake URL and send email
+    // 2. Build intake URL and set it on the task
     const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://windansea.vercel.app'
     const intakeUrl = `${baseUrl}/intake/${task.id}`
 
+    await updateTaskFields(task.id, [
+      { id: CLICKUP_FIELDS.uniqueIntakeForm, value: intakeUrl },
+    ])
+
+    // 3. Send email
     await sendIntakeEmail({
       to: contactEmail,
       clientName: contactName.split(' ')[0] || 'there',

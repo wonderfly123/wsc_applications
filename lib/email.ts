@@ -55,7 +55,7 @@ export async function sendIntakeEmail(params: {
   const transporter = getTransporter()
 
   await transporter.sendMail({
-    from: `Harrison at Windansea Coconuts <${SMTP_USER}>`,
+    from: `Windansea Coconuts <${SMTP_USER}>`,
     to,
     subject: `Your Event with Windansea Coconuts`,
     html: `
@@ -66,7 +66,6 @@ export async function sendIntakeEmail(params: {
         <p>This helps our team prepare every detail so your experience is nothing short of exceptional.</p>
         <p style="margin-top: 28px;">
           Warmly,<br/>
-          Harrison<br/>
           <span style="color: #878774;">Windansea Coconuts</span>
         </p>
       </div>
