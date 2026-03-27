@@ -84,9 +84,9 @@ function PlacesAutocomplete({ name, required, placeholder, baseClass }: {
   baseClass: string
 }) {
   const inputRef = useRef<HTMLInputElement>(null)
-  const [value, setValue] = useState('')
-  const [lat, setLat] = useState('')
-  const [lng, setLng] = useState('')
+  const latRef = useRef<HTMLInputElement>(null)
+  const lngRef = useRef<HTMLInputElement>(null)
+  const hiddenRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     const input = inputRef.current
@@ -100,12 +100,12 @@ function PlacesAutocomplete({ name, required, placeholder, baseClass }: {
 
     autocomplete.addListener('place_changed', () => {
       const place = autocomplete.getPlace()
-      if (place.formatted_address) {
-        setValue(place.formatted_address)
+      if (place.formatted_address && hiddenRef.current) {
+        hiddenRef.current.value = place.formatted_address
       }
       if (place.geometry?.location) {
-        setLat(String(place.geometry.location.lat()))
-        setLng(String(place.geometry.location.lng()))
+        if (latRef.current) latRef.current.value = String(place.geometry.location.lat())
+        if (lngRef.current) lngRef.current.value = String(place.geometry.location.lng())
       }
     })
   }, [])
@@ -115,16 +115,14 @@ function PlacesAutocomplete({ name, required, placeholder, baseClass }: {
       <input
         ref={inputRef}
         type="text"
-        value={value}
-        onChange={(e) => setValue(e.target.value)}
         required={required}
         placeholder={placeholder}
         className={baseClass}
         autoComplete="off"
       />
-      <input type="hidden" name={name} value={value} />
-      <input type="hidden" name={`${name}_lat`} value={lat} />
-      <input type="hidden" name={`${name}_lng`} value={lng} />
+      <input type="hidden" ref={hiddenRef} name={name} />
+      <input type="hidden" ref={latRef} name={`${name}_lat`} />
+      <input type="hidden" ref={lngRef} name={`${name}_lng`} />
     </>
   )
 }
