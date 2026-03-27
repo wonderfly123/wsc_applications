@@ -56,9 +56,12 @@ export async function POST(
         case 'location':
           value = { location: { formatted_address: rawValue } }
           break
-        case 'phone':
-          value = rawValue
+        case 'phone': {
+          // Normalize to E.164: strip non-digits, prepend +1 if needed
+          const digits = rawValue.replace(/\D/g, '')
+          value = digits.length === 10 ? `+1${digits}` : digits.length === 11 && digits[0] === '1' ? `+${digits}` : `+${digits}`
           break
+        }
         default:
           value = rawValue
       }
