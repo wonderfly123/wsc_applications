@@ -20,19 +20,19 @@ export default async function IntakePage({
       )}
       {/* Header bar */}
       <div className="bg-[#878774]">
-        <div className="max-w-2xl mx-auto px-6 py-5 flex items-center gap-4">
+        <div className="max-w-2xl mx-auto px-6 py-8 flex items-center gap-5">
           <Image
             src="/logo.png"
             alt="Windansea Coconuts"
-            width={40}
-            height={40}
+            width={56}
+            height={56}
             className="rounded-lg"
           />
           <div>
-            <p className="font-[family-name:var(--font-cormorant)] text-xl font-medium text-white leading-tight">
+            <p className="font-[family-name:var(--font-cormorant)] text-2xl font-medium text-white leading-tight">
               Windansea Coconuts
             </p>
-            <p className="text-xs text-white/70 font-[family-name:var(--font-jost)] tracking-wide uppercase">
+            <p className="text-sm text-white/70 font-[family-name:var(--font-jost)] tracking-widest uppercase mt-0.5">
               Event Intake Form
             </p>
           </div>
