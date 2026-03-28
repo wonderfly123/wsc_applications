@@ -154,18 +154,17 @@ export async function fetchTaskInitialValues(taskId: string): Promise<Record<str
   // Task name → eventName
   if (task.name) values.eventName = task.name
 
-  // Task-level dates → eventDate, setupTime, teardownTime
-  // Epochs are UTC. Use toISOString() (always UTC) so the round-trip is consistent
-  // with how the API route stores them (Vercel parses "dateThh:mm" as UTC).
+  // All times are in Pacific Time (America/Los_Angeles)
+  const TZ = 'America/Los_Angeles'
   if (task.start_date) {
-    const iso = new Date(Number(task.start_date)).toISOString()
-    values.eventDate = iso.slice(0, 10)
-    values.setupTime = iso.slice(11, 16)
+    const d = new Date(Number(task.start_date))
+    values.eventDate = d.toLocaleDateString('en-CA', { timeZone: TZ }) // YYYY-MM-DD
+    values.setupTime = d.toLocaleTimeString('en-GB', { timeZone: TZ, hour: '2-digit', minute: '2-digit' })
   }
   if (task.due_date) {
-    const iso = new Date(Number(task.due_date)).toISOString()
-    values.teardownTime = iso.slice(11, 16)
-    if (!values.eventDate) values.eventDate = iso.slice(0, 10)
+    const d = new Date(Number(task.due_date))
+    values.teardownTime = d.toLocaleTimeString('en-GB', { timeZone: TZ, hour: '2-digit', minute: '2-digit' })
+    if (!values.eventDate) values.eventDate = d.toLocaleDateString('en-CA', { timeZone: TZ })
   }
 
   // Map custom fields by ID to intake field names
@@ -185,10 +184,10 @@ export async function fetchTaskInitialValues(taskId: string): Promise<Record<str
       )
       if (option) values[mapping.name] = option.name
     } else if (mapping.clickupFieldType === 'date') {
-      // Date custom fields stored as epoch ms — extract UTC time portion (HH:mm)
+      // Date custom fields stored as epoch ms — extract Pacific time portion (HH:mm)
       const ms = Number(cf.value)
       if (!isNaN(ms) && ms > 0) {
-        values[mapping.name] = new Date(ms).toISOString().slice(11, 16)
+        values[mapping.name] = new Date(ms).toLocaleTimeString('en-GB', { timeZone: TZ, hour: '2-digit', minute: '2-digit' })
       }
     } else if (mapping.clickupFieldType === 'location' && typeof cf.value === 'object' && cf.value !== null) {
       const addr = (cf.value as { formatted_address?: string }).formatted_address

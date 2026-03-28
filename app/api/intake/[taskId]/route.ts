@@ -3,6 +3,19 @@ import { updateTaskFields } from '@/lib/clickup'
 import { INTAKE_FIELDS, UPLOAD_FIELDS, INTAKE_COMPLETE_FIELD_ID } from '@/lib/intake-fields'
 import { sendErrorAlert } from '@/lib/email'
 
+// Parse a date + time string as Pacific Time and return epoch ms
+function toPacificEpoch(date: string, time: string): number {
+  // Build an ISO-ish string and use Intl to find the UTC offset for Pacific
+  const dt = new Date(`${date}T${time}:00`)
+  const utcStr = dt.toLocaleString('en-US', { timeZone: 'UTC' })
+  const pacStr = dt.toLocaleString('en-US', { timeZone: 'America/Los_Angeles' })
+  const utcDate = new Date(utcStr)
+  const pacDate = new Date(pacStr)
+  const offsetMs = utcDate.getTime() - pacDate.getTime()
+  // The input time IS Pacific, so add offset to get UTC epoch
+  return new Date(`${date}T${time}:00`).getTime() + offsetMs
+}
+
 async function uploadAttachment(taskId: string, file: File) {
   const apiKey = process.env.CLICKUP_API_KEY
   if (!apiKey) throw new Error('CLICKUP_API_KEY not set')
@@ -46,8 +59,8 @@ export async function POST(
           value = Number(rawValue)
           break
         case 'date':
-          // Time fields are combined with the event date
-          value = eventDate ? new Date(`${eventDate}T${rawValue}`).getTime() : new Date(rawValue).getTime()
+          // Time fields combined with event date, interpreted as Pacific Time
+          value = eventDate ? toPacificEpoch(eventDate, rawValue) : new Date(rawValue).getTime()
           fieldUpdates.push({ id: field.clickupFieldId, value, value_options: { time: true } })
           continue
         case 'drop_down': {
@@ -109,7 +122,7 @@ export async function POST(
       const setupTime = formData.get('setupTime') as string | null
       const teardownTime = formData.get('teardownTime') as string | null
       if (eventDate && setupTime) {
-        const setupTimestamp = new Date(`${eventDate}T${setupTime}`).getTime()
+        const setupTimestamp = toPacificEpoch(eventDate, setupTime)
         taskUpdate.start_date = setupTimestamp
         taskUpdate.start_date_time = true
 
@@ -121,7 +134,7 @@ export async function POST(
       }
 
       if (teardownTime && eventDate && selectedPackage !== 'Sandcastle') {
-        taskUpdate.due_date = new Date(`${eventDate}T${teardownTime}`).getTime()
+        taskUpdate.due_date = toPacificEpoch(eventDate, teardownTime)
         taskUpdate.due_date_time = true
       }
 
