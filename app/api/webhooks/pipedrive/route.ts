@@ -59,7 +59,9 @@ export async function POST(req: NextRequest) {
     if (coconutQty) customFields.push({ id: CLICKUP_FIELDS.coconutQty, value: Number(coconutQty) })
 
     // Parse event date for task start date
-    const startDate = eventDate ? new Date(eventDate).getTime() : undefined
+    // Pipedrive sends date-only ("2026-03-28"). Use noon UTC so the date
+    // displays on the correct calendar day in any US timezone.
+    const startDate = eventDate ? new Date(`${eventDate}T12:00:00Z`).getTime() : undefined
 
     // 1. Create ClickUp task with Pipedrive fields pre-populated
     const task = await createTask(dealTitle, description, customFields, { startDate })
