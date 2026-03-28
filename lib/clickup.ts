@@ -1,5 +1,5 @@
 import { BEOData, BEOAttachment, FIELD_MAP, ATTACHMENT_FIELDS } from './types'
-import { INTAKE_FIELDS } from './intake-fields'
+import { INTAKE_FIELDS, TIMEZONE_MAP, fromUtcEpoch, formatForDisplay } from './intake-fields'
 
 interface ClickUpCustomField {
   id: string
@@ -9,7 +9,7 @@ interface ClickUpCustomField {
   }
 }
 
-function resolveFieldValue(field: ClickUpCustomField): string {
+function resolveFieldValue(field: ClickUpCustomField, tz: string): string {
   const { value, type_config } = field
 
   if (value === null || value === undefined || value === '') return '\u2014'
@@ -31,15 +31,13 @@ function resolveFieldValue(field: ClickUpCustomField): string {
   // Date fields (ClickUp stores as epoch ms string or number)
   const numVal = Number(value)
   if (!isNaN(numVal) && numVal > 1_000_000_000_000) {
-    const d = new Date(numVal)
-    return d.toLocaleDateString('en-US', { dateStyle: 'medium', timeZone: 'UTC' }) +
-      ', ' + d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', timeZone: 'UTC' })
+    return formatForDisplay(numVal, tz)
   }
 
   return String(value)
 }
 
-export function parseCustomFields(customFields: ClickUpCustomField[]): BEOData {
+export function parseCustomFields(customFields: ClickUpCustomField[], tz: string = 'America/Los_Angeles'): BEOData {
   const fieldById = new Map(customFields.map((f) => [f.id, f]))
 
   const result = {} as BEOData
@@ -49,7 +47,7 @@ export function parseCustomFields(customFields: ClickUpCustomField[]): BEOData {
   result.eventDate = '\u2014'
   for (const [key, fieldId] of Object.entries(FIELD_MAP)) {
     const field = fieldById.get(fieldId)
-    ;(result as unknown as Record<string, unknown>)[key] = field ? resolveFieldValue(field) : '\u2014'
+    ;(result as unknown as Record<string, unknown>)[key] = field ? resolveFieldValue(field, tz) : '\u2014'
   }
 
   // Extract attachments from attachment fields
@@ -156,39 +154,26 @@ export async function fetchTaskInitialValues(taskId: string): Promise<Record<str
   // Task name → eventName
   if (task.name) values.eventName = task.name
 
-  // Task-level dates → setupTime, teardownTime as datetime-local format (YYYY-MM-DDTHH:mm)
-  // Use ISO substring so the round-trip matches server-side new Date(value).getTime()
-  if (task.start_date) {
-    const iso = new Date(Number(task.start_date)).toISOString()
-    values.setupTime = iso.slice(0, 16) // YYYY-MM-DDTHH:mm
-  }
-  if (task.due_date) {
-    const iso = new Date(Number(task.due_date)).toISOString()
-    values.teardownTime = iso.slice(0, 16)
-  }
-
   // Map custom fields by ID to intake field names
   const fieldIdToName = new Map<string, { name: string; clickupFieldType: string; options?: string[] }>()
   for (const f of INTAKE_FIELDS) {
     if (f.clickupFieldId) fieldIdToName.set(f.clickupFieldId, { name: f.name, clickupFieldType: f.clickupFieldType, options: f.options })
   }
 
+  // First pass: extract non-date fields (need timezone before converting dates)
+  const dateFields: Array<{ name: string; ms: number }> = []
   for (const cf of task.custom_fields ?? []) {
     const mapping = fieldIdToName.get(cf.id)
     if (!mapping || cf.value === null || cf.value === undefined || cf.value === '') continue
 
     if (mapping.clickupFieldType === 'drop_down' && typeof cf.value === 'number') {
-      // Resolve orderindex to option name
       const option = cf.type_config?.options?.find(
         (o: { orderindex: number; name: string }) => o.orderindex === cf.value
       )
       if (option) values[mapping.name] = option.name
     } else if (mapping.clickupFieldType === 'date') {
-      // Date custom fields stored as epoch ms → datetime-local format
       const ms = Number(cf.value)
-      if (!isNaN(ms) && ms > 0) {
-        values[mapping.name] = new Date(ms).toISOString().slice(0, 16)
-      }
+      if (!isNaN(ms) && ms > 0) dateFields.push({ name: mapping.name, ms })
     } else if (mapping.clickupFieldType === 'location' && typeof cf.value === 'object' && cf.value !== null) {
       const addr = (cf.value as { formatted_address?: string }).formatted_address
       if (addr) values[mapping.name] = addr
@@ -199,6 +184,22 @@ export async function fetchTaskInitialValues(taskId: string): Promise<Record<str
     } else if (typeof cf.value === 'string') {
       values[mapping.name] = cf.value
     }
+  }
+
+  // Resolve timezone (default to Pacific if not set)
+  const tz = TIMEZONE_MAP[values.eventTimezone] || 'America/Los_Angeles'
+
+  // Convert task-level dates using event timezone
+  if (task.start_date) {
+    values.setupTime = fromUtcEpoch(Number(task.start_date), tz)
+  }
+  if (task.due_date) {
+    values.teardownTime = fromUtcEpoch(Number(task.due_date), tz)
+  }
+
+  // Convert custom date fields using event timezone
+  for (const { name, ms } of dateFields) {
+    values[name] = fromUtcEpoch(ms, tz)
   }
 
   // Fallback: if loadInLocation is empty, use eventLocation (useful for Sandcastle)
@@ -224,26 +225,31 @@ export async function fetchTask(taskId: string): Promise<BEOData | null> {
   if (!res.ok) return null
 
   const task = await res.json()
-  const data = parseCustomFields(task.custom_fields ?? [])
+
+  // Determine event timezone from custom fields (default Pacific)
+  const tzField = INTAKE_FIELDS.find(f => f.name === 'eventTimezone')
+  let eventTz = 'America/Los_Angeles'
+  if (tzField?.clickupFieldId) {
+    const cf = (task.custom_fields ?? []).find((f: { id: string }) => f.id === tzField.clickupFieldId)
+    if (cf?.value && typeof cf.value === 'string' && TIMEZONE_MAP[cf.value]) {
+      eventTz = TIMEZONE_MAP[cf.value]
+    }
+  }
+
+  const data = parseCustomFields(task.custom_fields ?? [], eventTz)
   data.eventName = task.name ?? '\u2014'
 
   // Extract task-level dates for BEO display
-  const formatDateTime = (ms: number) => {
-    const d = new Date(ms)
-    return d.toLocaleDateString('en-US', { dateStyle: 'medium', timeZone: 'UTC' }) +
-      ', ' + d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', timeZone: 'UTC' })
-  }
-
   if (task.start_date) {
     const ms = Number(task.start_date)
-    data.eventDate = new Date(ms).toLocaleDateString('en-US', { dateStyle: 'medium', timeZone: 'UTC' })
-    data.setupTime = formatDateTime(ms)
+    data.eventDate = new Date(ms).toLocaleDateString('en-US', { dateStyle: 'medium', timeZone: eventTz })
+    data.setupTime = formatForDisplay(ms, eventTz)
   } else {
     data.eventDate = '\u2014'
     data.setupTime = '\u2014'
   }
   if (task.due_date) {
-    data.teardownTime = formatDateTime(Number(task.due_date))
+    data.teardownTime = formatForDisplay(Number(task.due_date), eventTz)
   } else {
     data.teardownTime = '\u2014'
   }

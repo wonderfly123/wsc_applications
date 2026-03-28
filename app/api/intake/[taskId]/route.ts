@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { updateTaskFields } from '@/lib/clickup'
-import { INTAKE_FIELDS, UPLOAD_FIELDS, INTAKE_COMPLETE_FIELD_ID } from '@/lib/intake-fields'
+import { INTAKE_FIELDS, UPLOAD_FIELDS, INTAKE_COMPLETE_FIELD_ID, TIMEZONE_MAP, toUtcEpoch } from '@/lib/intake-fields'
 import { sendErrorAlert } from '@/lib/email'
 
 async function uploadAttachment(taskId: string, file: File) {
@@ -29,6 +29,10 @@ export async function POST(
     const formData = await req.formData()
     const { taskId } = params
 
+    // Resolve event timezone
+    const tzLabel = (formData.get('eventTimezone') as string) || 'Pacific Time (PT)'
+    const tz = TIMEZONE_MAP[tzLabel] || 'America/Los_Angeles'
+
     // Build custom field updates from form data
     const fieldUpdates: Array<{ id: string; value: unknown; value_options?: Record<string, unknown> }> = []
 
@@ -44,7 +48,7 @@ export async function POST(
           value = Number(rawValue)
           break
         case 'date':
-          value = new Date(rawValue).getTime()
+          value = toUtcEpoch(rawValue, tz)
           fieldUpdates.push({ id: field.clickupFieldId, value, value_options: { time: true } })
           continue
         case 'drop_down': {
@@ -106,7 +110,7 @@ export async function POST(
       const setupTime = formData.get('setupTime') as string | null
       const teardownTime = formData.get('teardownTime') as string | null
       if (setupTime) {
-        const setupTimestamp = new Date(setupTime).getTime()
+        const setupTimestamp = toUtcEpoch(setupTime, tz)
         taskUpdate.start_date = setupTimestamp
         taskUpdate.start_date_time = true
 
@@ -118,7 +122,7 @@ export async function POST(
       }
 
       if (teardownTime && selectedPackage !== 'Sandcastle') {
-        taskUpdate.due_date = new Date(teardownTime).getTime()
+        taskUpdate.due_date = toUtcEpoch(teardownTime, tz)
         taskUpdate.due_date_time = true
       }
 

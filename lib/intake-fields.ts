@@ -34,6 +34,7 @@ export const INTAKE_FIELDS: IntakeFieldDef[] = [
   { name: 'setupProvided', label: 'Setup Provided?', type: 'select', required: true, clickupFieldId: '87c25b9c-21b0-4420-8ad9-3d36265d567b', clickupFieldType: 'drop_down', options: ['N/A', 'Yes', 'No'], helpText: 'Do you have an existing setup you\'d like us to use?', section: 'package', half: true, hideWhenPackage: ['Sandcastle'] },
 
   // === Event Location and Timing ===
+  { name: 'eventTimezone', label: 'Event Timezone', type: 'select', required: true, clickupFieldId: '', clickupFieldType: 'ignore', options: ['Pacific Time (PT)', 'Mountain Time (MT)', 'Central Time (CT)', 'Eastern Time (ET)'], helpText: 'Timezone where the event takes place', section: 'timing' },
   { name: 'setupTime', label: 'Set Up Date and Time', type: 'datetime-local', required: true, clickupFieldId: '', clickupFieldType: 'task_start_date', section: 'timing', half: true, labelByPackage: { Sandcastle: 'Drop Off Date and Time' } },
   { name: 'teardownTime', label: 'Tear Down Date and Time', type: 'datetime-local', required: true, clickupFieldId: '', clickupFieldType: 'task_due_date', section: 'timing', half: true, hideWhenPackage: ['Sandcastle'] },
   { name: 'serviceStart', label: 'Service Start Date and Time', type: 'datetime-local', required: true, clickupFieldId: 'f6483054-1434-4c04-ac53-06af6042a96f', clickupFieldType: 'date', section: 'timing', half: true, hideWhenPackage: ['Sandcastle'] },
@@ -56,3 +57,49 @@ export const UPLOAD_FIELDS = [
 
 // Field ID for marking intake as complete after form submission
 export const INTAKE_COMPLETE_FIELD_ID = 'dbeda913-50e7-4988-9f1d-d28ec26a9a6d'
+
+// Timezone display label → IANA timezone ID
+export const TIMEZONE_MAP: Record<string, string> = {
+  'Pacific Time (PT)': 'America/Los_Angeles',
+  'Mountain Time (MT)': 'America/Denver',
+  'Central Time (CT)': 'America/Chicago',
+  'Eastern Time (ET)': 'America/New_York',
+}
+
+// Convert a datetime-local string (YYYY-MM-DDTHH:mm) in a given timezone to UTC epoch ms
+export function toUtcEpoch(datetimeLocal: string, timezone: string): number {
+  // datetime-local gives us "2026-04-15T07:35"
+  // We need to interpret this as 7:35 AM in the given timezone
+  const d = new Date(datetimeLocal)
+  const utcStr = d.toLocaleString('en-US', { timeZone: 'UTC' })
+  const tzStr = d.toLocaleString('en-US', { timeZone: timezone })
+  const offset = new Date(utcStr).getTime() - new Date(tzStr).getTime()
+  // d was parsed as UTC-like by Node, we need to shift it so the local time matches the target tz
+  return d.getTime() + offset
+}
+
+// Convert a UTC epoch ms to a datetime-local string in a given timezone
+export function fromUtcEpoch(epochMs: number, timezone: string): string {
+  const d = new Date(epochMs)
+  // Get date parts in the target timezone
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone: timezone,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  }).formatToParts(d)
+  const get = (type: string) => parts.find(p => p.type === type)?.value || ''
+  return `${get('year')}-${get('month')}-${get('day')}T${get('hour')}:${get('minute')}`
+}
+
+// Format a UTC epoch ms for display (BEO) in a given timezone
+export function formatForDisplay(epochMs: number, timezone: string): string {
+  const d = new Date(epochMs)
+  const date = d.toLocaleDateString('en-US', { timeZone: timezone, dateStyle: 'medium' })
+  const time = d.toLocaleTimeString('en-US', { timeZone: timezone, hour: 'numeric', minute: '2-digit' })
+  const tzAbbr = d.toLocaleTimeString('en-US', { timeZone: timezone, timeZoneName: 'short' }).split(' ').pop()
+  return `${date}, ${time} ${tzAbbr}`
+}
