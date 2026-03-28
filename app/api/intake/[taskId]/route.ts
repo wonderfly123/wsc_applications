@@ -3,19 +3,6 @@ import { updateTaskFields } from '@/lib/clickup'
 import { INTAKE_FIELDS, UPLOAD_FIELDS, INTAKE_COMPLETE_FIELD_ID } from '@/lib/intake-fields'
 import { sendErrorAlert } from '@/lib/email'
 
-// Parse a date + time string as Pacific Time and return epoch ms
-function toPacificEpoch(date: string, time: string): number {
-  // Build an ISO-ish string and use Intl to find the UTC offset for Pacific
-  const dt = new Date(`${date}T${time}:00`)
-  const utcStr = dt.toLocaleString('en-US', { timeZone: 'UTC' })
-  const pacStr = dt.toLocaleString('en-US', { timeZone: 'America/Los_Angeles' })
-  const utcDate = new Date(utcStr)
-  const pacDate = new Date(pacStr)
-  const offsetMs = utcDate.getTime() - pacDate.getTime()
-  // The input time IS Pacific, so add offset to get UTC epoch
-  return new Date(`${date}T${time}:00`).getTime() + offsetMs
-}
-
 async function uploadAttachment(taskId: string, file: File) {
   const apiKey = process.env.CLICKUP_API_KEY
   if (!apiKey) throw new Error('CLICKUP_API_KEY not set')
@@ -45,8 +32,6 @@ export async function POST(
     // Build custom field updates from form data
     const fieldUpdates: Array<{ id: string; value: unknown; value_options?: Record<string, unknown> }> = []
 
-    const eventDate = formData.get('eventDate') as string || ''
-
     for (const field of INTAKE_FIELDS) {
       const rawValue = formData.get(field.name) as string | null
       if (!rawValue) continue
@@ -59,8 +44,7 @@ export async function POST(
           value = Number(rawValue)
           break
         case 'date':
-          // Time fields combined with event date, interpreted as Pacific Time
-          value = eventDate ? toPacificEpoch(eventDate, rawValue) : new Date(rawValue).getTime()
+          value = new Date(rawValue).getTime()
           fieldUpdates.push({ id: field.clickupFieldId, value, value_options: { time: true } })
           continue
         case 'drop_down': {
@@ -121,8 +105,8 @@ export async function POST(
       const selectedPackage = formData.get('package') as string || ''
       const setupTime = formData.get('setupTime') as string | null
       const teardownTime = formData.get('teardownTime') as string | null
-      if (eventDate && setupTime) {
-        const setupTimestamp = toPacificEpoch(eventDate, setupTime)
+      if (setupTime) {
+        const setupTimestamp = new Date(setupTime).getTime()
         taskUpdate.start_date = setupTimestamp
         taskUpdate.start_date_time = true
 
@@ -133,8 +117,8 @@ export async function POST(
         }
       }
 
-      if (teardownTime && eventDate && selectedPackage !== 'Sandcastle') {
-        taskUpdate.due_date = toPacificEpoch(eventDate, teardownTime)
+      if (teardownTime && selectedPackage !== 'Sandcastle') {
+        taskUpdate.due_date = new Date(teardownTime).getTime()
         taskUpdate.due_date_time = true
       }
 

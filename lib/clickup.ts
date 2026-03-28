@@ -28,14 +28,12 @@ function resolveFieldValue(field: ClickUpCustomField): string {
   // Boolean fields
   if (typeof value === 'boolean') return value ? 'Yes' : 'No'
 
-  // Date fields (ClickUp stores as epoch ms string or number) — display in Pacific Time
+  // Date fields (ClickUp stores as epoch ms string or number)
   const numVal = Number(value)
   if (!isNaN(numVal) && numVal > 1_000_000_000_000) {
-    return new Date(numVal).toLocaleString('en-US', {
-      timeZone: 'America/Los_Angeles',
-      dateStyle: 'medium',
-      timeStyle: 'short',
-    })
+    const d = new Date(numVal)
+    return d.toLocaleDateString('en-US', { dateStyle: 'medium', timeZone: 'UTC' }) +
+      ', ' + d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', timeZone: 'UTC' })
   }
 
   return String(value)
@@ -158,17 +156,15 @@ export async function fetchTaskInitialValues(taskId: string): Promise<Record<str
   // Task name → eventName
   if (task.name) values.eventName = task.name
 
-  // All times are in Pacific Time (America/Los_Angeles)
-  const TZ = 'America/Los_Angeles'
+  // Task-level dates → setupTime, teardownTime as datetime-local format (YYYY-MM-DDTHH:mm)
+  // Use ISO substring so the round-trip matches server-side new Date(value).getTime()
   if (task.start_date) {
-    const d = new Date(Number(task.start_date))
-    values.eventDate = d.toLocaleDateString('en-CA', { timeZone: TZ }) // YYYY-MM-DD
-    values.setupTime = d.toLocaleTimeString('en-GB', { timeZone: TZ, hour: '2-digit', minute: '2-digit' })
+    const iso = new Date(Number(task.start_date)).toISOString()
+    values.setupTime = iso.slice(0, 16) // YYYY-MM-DDTHH:mm
   }
   if (task.due_date) {
-    const d = new Date(Number(task.due_date))
-    values.teardownTime = d.toLocaleTimeString('en-GB', { timeZone: TZ, hour: '2-digit', minute: '2-digit' })
-    if (!values.eventDate) values.eventDate = d.toLocaleDateString('en-CA', { timeZone: TZ })
+    const iso = new Date(Number(task.due_date)).toISOString()
+    values.teardownTime = iso.slice(0, 16)
   }
 
   // Map custom fields by ID to intake field names
@@ -188,10 +184,10 @@ export async function fetchTaskInitialValues(taskId: string): Promise<Record<str
       )
       if (option) values[mapping.name] = option.name
     } else if (mapping.clickupFieldType === 'date') {
-      // Date custom fields stored as epoch ms — extract Pacific time portion (HH:mm)
+      // Date custom fields stored as epoch ms → datetime-local format
       const ms = Number(cf.value)
       if (!isNaN(ms) && ms > 0) {
-        values[mapping.name] = new Date(ms).toLocaleTimeString('en-GB', { timeZone: TZ, hour: '2-digit', minute: '2-digit' })
+        values[mapping.name] = new Date(ms).toISOString().slice(0, 16)
       }
     } else if (mapping.clickupFieldType === 'location' && typeof cf.value === 'object' && cf.value !== null) {
       const addr = (cf.value as { formatted_address?: string }).formatted_address
@@ -231,21 +227,23 @@ export async function fetchTask(taskId: string): Promise<BEOData | null> {
   const data = parseCustomFields(task.custom_fields ?? [])
   data.eventName = task.name ?? '\u2014'
 
-  // Extract task-level dates as Pacific Time
-  const TZ = 'America/Los_Angeles'
-  const formatDate = (ms: number) => new Date(ms).toLocaleDateString('en-US', { timeZone: TZ, dateStyle: 'medium' })
-  const formatTime = (ms: number) => new Date(ms).toLocaleTimeString('en-US', { timeZone: TZ, hour: 'numeric', minute: '2-digit' })
+  // Extract task-level dates for BEO display
+  const formatDateTime = (ms: number) => {
+    const d = new Date(ms)
+    return d.toLocaleDateString('en-US', { dateStyle: 'medium', timeZone: 'UTC' }) +
+      ', ' + d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', timeZone: 'UTC' })
+  }
 
   if (task.start_date) {
     const ms = Number(task.start_date)
-    data.eventDate = formatDate(ms)
-    data.setupTime = formatTime(ms)
+    data.eventDate = new Date(ms).toLocaleDateString('en-US', { dateStyle: 'medium', timeZone: 'UTC' })
+    data.setupTime = formatDateTime(ms)
   } else {
     data.eventDate = '\u2014'
     data.setupTime = '\u2014'
   }
   if (task.due_date) {
-    data.teardownTime = formatTime(Number(task.due_date))
+    data.teardownTime = formatDateTime(Number(task.due_date))
   } else {
     data.teardownTime = '\u2014'
   }

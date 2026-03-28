@@ -23,12 +23,12 @@ function validateField(field: IntakeFieldDef, value: string): string | null {
   return null
 }
 
-function validateTimePairs(values: Record<string, string>): Record<string, string | null> {
+function validateDateTimePairs(values: Record<string, string>): Record<string, string | null> {
   const errs: Record<string, string | null> = {}
-  const setup = values.setupTime || ''
-  const teardown = values.teardownTime || ''
-  const serviceStart = values.serviceStart || ''
-  const serviceEnd = values.serviceEnd || ''
+  const setup = values.setupTime ? new Date(values.setupTime) : null
+  const teardown = values.teardownTime ? new Date(values.teardownTime) : null
+  const serviceStart = values.serviceStart ? new Date(values.serviceStart) : null
+  const serviceEnd = values.serviceEnd ? new Date(values.serviceEnd) : null
 
   if (setup && teardown && teardown <= setup) {
     errs.teardownTime = 'Tear down must be after set up'
@@ -414,23 +414,23 @@ export function IntakeForm({ taskId, initialValues = {} }: { taskId: string; ini
       }
 
       // For time fields, run cross-field time pair validation
-      if (field.type === 'time') {
+      if (field.type === 'datetime-local') {
         const form = document.querySelector('form')
         if (form) {
           const formData = new FormData(form)
           const values: Record<string, string> = {}
           for (const f of INTAKE_FIELDS) {
-            if (f.type === 'time') {
+            if (f.type === 'datetime-local') {
               values[f.name] = f.name === name ? value : (formData.get(f.name) as string) || ''
             }
           }
-          const timeErrors = validateTimePairs(values)
+          const timeErrors = validateDateTimePairs(values)
           for (const [key, msg] of Object.entries(timeErrors)) {
             if (msg) updated[key] = msg
           }
           // Clear time pair errors that are no longer present
           for (const f of INTAKE_FIELDS) {
-            if (f.type === 'time' && !timeErrors[f.name] && !validateField(f, f.name === name ? value : (formData.get(f.name) as string) || '')) {
+            if (f.type === 'datetime-local' && !timeErrors[f.name] && !validateField(f, f.name === name ? value : (formData.get(f.name) as string) || '')) {
               updated[f.name] = null
             }
           }
@@ -468,7 +468,7 @@ export function IntakeForm({ taskId, initialValues = {} }: { taskId: string; ini
       newErrors[field.name] = error
       if (error) hasError = true
 
-      if (field.type === 'time') timeValues[field.name] = val
+      if (field.type === 'datetime-local') timeValues[field.name] = val
 
       // Validate location fields have a Google-selected address
       if (field.clickupFieldType === 'location' && val.trim() && !error) {
@@ -480,7 +480,7 @@ export function IntakeForm({ taskId, initialValues = {} }: { taskId: string; ini
     }
 
     // Validate time pairs (tear down after set up, service within set up/tear down)
-    const timeErrors = validateTimePairs(timeValues)
+    const timeErrors = validateDateTimePairs(timeValues)
     for (const [key, msg] of Object.entries(timeErrors)) {
       if (msg) {
         newErrors[key] = msg
