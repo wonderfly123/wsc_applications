@@ -1,4 +1,5 @@
 import { IntakeForm } from '@/components/IntakeForm'
+import { fetchTaskInitialValues } from '@/lib/clickup'
 import Image from 'next/image'
 import Script from 'next/script'
 
@@ -10,6 +11,7 @@ export default async function IntakePage({
   params: { taskId: string }
 }) {
   const mapsKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY
+  const initialValues = await fetchTaskInitialValues(params.taskId)
   return (
     <div className="min-h-screen bg-[#f0ede4]">
       {mapsKey && (
@@ -41,14 +43,14 @@ export default async function IntakePage({
 
       {/* Intro */}
       <div className="max-w-2xl mx-auto px-6 pt-8 pb-2">
-        <p className="text-sm text-[#9a9890] font-[family-name:var(--font-jost)]">
+        <p className="text-base text-[#878774] font-[family-name:var(--font-jost)] leading-relaxed">
           This link is unique to your event. If you need to come back later, bookmark this page or find the link in your email.
         </p>
       </div>
 
       {/* Form */}
       <div className="max-w-2xl mx-auto px-6 py-6 pb-16 overflow-hidden">
-        <IntakeForm taskId={params.taskId} />
+        <IntakeForm taskId={params.taskId} initialValues={initialValues} />
       </div>
     </div>
   )

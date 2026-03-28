@@ -85,6 +85,15 @@ export async function POST(
       fieldUpdates.push({ id: field.clickupFieldId, value })
     }
 
+    // Sandcastle: copy delivery location to event location field
+    const selectedPkg = formData.get('package') as string || ''
+    if (selectedPkg === 'Sandcastle') {
+      const deliveryLocation = fieldUpdates.find((f) => f.id === '967038c5-4d18-41d5-8c63-f01bf20ece7a')
+      if (deliveryLocation) {
+        fieldUpdates.push({ id: 'b92b1e46-363e-4453-9888-b530ecdeefce', value: deliveryLocation.value })
+      }
+    }
+
     // Mark intake as complete (0 = "Yes", first option)
     fieldUpdates.push({ id: INTAKE_COMPLETE_FIELD_ID, value: 0 })
 
@@ -96,6 +105,7 @@ export async function POST(
       const eventName = formData.get('eventName') as string | null
       if (eventName) taskUpdate.name = eventName
 
+      const selectedPackage = formData.get('package') as string || ''
       const setupTime = formData.get('setupTime') as string | null
       const teardownTime = formData.get('teardownTime') as string | null
       if (eventDate && setupTime) {
@@ -104,13 +114,13 @@ export async function POST(
         taskUpdate.start_date_time = true
 
         // Sandcastle is a drop-off — same time for start and due date
-        if (!teardownTime) {
+        if (selectedPackage === 'Sandcastle') {
           taskUpdate.due_date = setupTimestamp
           taskUpdate.due_date_time = true
         }
       }
 
-      if (teardownTime && eventDate) {
+      if (teardownTime && eventDate && selectedPackage !== 'Sandcastle') {
         taskUpdate.due_date = new Date(`${eventDate}T${teardownTime}`).getTime()
         taskUpdate.due_date_time = true
       }

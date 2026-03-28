@@ -1,4 +1,5 @@
 import { BEOData, BEOAttachment, FIELD_MAP, ATTACHMENT_FIELDS } from './types'
+import { INTAKE_FIELDS } from './intake-fields'
 
 interface ClickUpCustomField {
   id: string
@@ -135,6 +136,50 @@ export async function updateTaskFields(
   if (failures.length > 0) {
     throw new Error(failures.map((f) => f.reason?.message || f.reason).join('; '))
   }
+}
+
+export async function fetchTaskInitialValues(taskId: string): Promise<Record<string, string>> {
+  const apiKey = process.env.CLICKUP_API_KEY
+  if (!apiKey) return {}
+
+  const res = await fetch(
+    `https://api.clickup.com/api/v2/task/${taskId}?custom_task_ids=false&include_subtasks=false`,
+    { headers: { Authorization: apiKey }, next: { revalidate: 0 } }
+  )
+  if (!res.ok) return {}
+
+  const task = await res.json()
+  const values: Record<string, string> = {}
+
+  // Task name → eventName
+  if (task.name) values.eventName = task.name
+
+  // Map custom fields by ID to intake field names
+  const fieldIdToName = new Map<string, { name: string; clickupFieldType: string; options?: string[] }>()
+  for (const f of INTAKE_FIELDS) {
+    if (f.clickupFieldId) fieldIdToName.set(f.clickupFieldId, { name: f.name, clickupFieldType: f.clickupFieldType, options: f.options })
+  }
+
+  for (const cf of task.custom_fields ?? []) {
+    const mapping = fieldIdToName.get(cf.id)
+    if (!mapping || cf.value === null || cf.value === undefined || cf.value === '') continue
+
+    if (mapping.clickupFieldType === 'drop_down' && typeof cf.value === 'number') {
+      // Resolve orderindex to option name
+      const option = cf.type_config?.options?.find(
+        (o: { orderindex: number; name: string }) => o.orderindex === cf.value
+      )
+      if (option) values[mapping.name] = option.name
+    } else if (mapping.clickupFieldType === 'number') {
+      values[mapping.name] = String(cf.value)
+    } else if (mapping.clickupFieldType === 'phone') {
+      values[mapping.name] = String(cf.value)
+    } else if (typeof cf.value === 'string') {
+      values[mapping.name] = cf.value
+    }
+  }
+
+  return values
 }
 
 export async function fetchTask(taskId: string): Promise<BEOData | null> {

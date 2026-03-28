@@ -54,16 +54,17 @@ function FieldError({ message }: { message?: string | null }) {
   )
 }
 
-function CustomSelect({ name, options, required, placeholder = 'Select...', error, onBlur }: {
+function CustomSelect({ name, options, required, placeholder = 'Select...', error, onBlur, defaultValue }: {
   name: string
   options: string[]
   required: boolean
   placeholder?: string
   error?: string | null
   onBlur?: (value: string) => void
+  defaultValue?: string
 }) {
   const [open, setOpen] = useState(false)
-  const [selected, setSelected] = useState('')
+  const [selected, setSelected] = useState(defaultValue || '')
   const [openUp, setOpenUp] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
 
@@ -189,7 +190,7 @@ function PlacesAutocomplete({ name, required, placeholder, baseClass, onBlur, on
   )
 }
 
-function FormField({ field, error, onBlur, onPlaceSelect, labelOverride }: { field: IntakeFieldDef; error?: string | null; onBlur?: (name: string, value: string) => void; onPlaceSelect?: (name: string, valid: boolean) => void; labelOverride?: string }) {
+function FormField({ field, error, onBlur, onPlaceSelect, labelOverride, defaultValue }: { field: IntakeFieldDef; error?: string | null; onBlur?: (name: string, value: string) => void; onPlaceSelect?: (name: string, valid: boolean) => void; labelOverride?: string; defaultValue?: string }) {
   const hasError = !!error
   const normalClass =
     'w-full max-w-full rounded-lg px-4 py-3 border border-[#d8d5cc] bg-white text-[#1e1d1a] font-[family-name:var(--font-jost)] text-[15px] placeholder:text-[#bbb8b0] focus:outline-none focus:border-[#8b6914] focus:ring-2 focus:ring-[#8b6914]/20 transition-all box-border'
@@ -221,6 +222,7 @@ function FormField({ field, error, onBlur, onPlaceSelect, labelOverride }: { fie
           required={field.required}
           error={error}
           onBlur={(value) => onBlur?.(field.name, value)}
+          defaultValue={defaultValue}
         />
       ) : field.clickupFieldType === 'location' ? (
         <PlacesAutocomplete
@@ -240,6 +242,7 @@ function FormField({ field, error, onBlur, onPlaceSelect, labelOverride }: { fie
           rows={3}
           className={`${baseClass} resize-none`}
           onBlur={handleBlur}
+          defaultValue={defaultValue}
         />
       ) : (
         <input
@@ -251,6 +254,7 @@ function FormField({ field, error, onBlur, onPlaceSelect, labelOverride }: { fie
           className={baseClass}
           {...(field.type === 'number' ? { min: 0 } : {})}
           onBlur={handleBlur}
+          defaultValue={defaultValue}
         />
       )}
       <FieldError message={error} />
@@ -337,7 +341,7 @@ function FileUploadField({ name, label, required, accept, helpText, file, onFile
   )
 }
 
-function renderFieldGrid(fields: IntakeFieldDef[], errors: Record<string, string | null>, onBlur: (name: string, value: string) => void, onPlaceSelect: (name: string, valid: boolean) => void, selectedPackage: string) {
+function renderFieldGrid(fields: IntakeFieldDef[], errors: Record<string, string | null>, onBlur: (name: string, value: string) => void, onPlaceSelect: (name: string, valid: boolean) => void, selectedPackage: string, initialValues: Record<string, string>) {
   const rows: React.ReactNode[] = []
   let i = 0
 
@@ -350,15 +354,15 @@ function renderFieldGrid(fields: IntakeFieldDef[], errors: Record<string, string
     if (field.half && next?.half) {
       rows.push(
         <div key={field.name} className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <FormField field={field} error={errors[field.name]} onBlur={onBlur} onPlaceSelect={onPlaceSelect} labelOverride={label} />
-          <FormField field={next} error={errors[next.name]} onBlur={onBlur} onPlaceSelect={onPlaceSelect} labelOverride={nextLabel} />
+          <FormField field={field} error={errors[field.name]} onBlur={onBlur} onPlaceSelect={onPlaceSelect} labelOverride={label} defaultValue={initialValues[field.name]} />
+          <FormField field={next} error={errors[next.name]} onBlur={onBlur} onPlaceSelect={onPlaceSelect} labelOverride={nextLabel} defaultValue={initialValues[next.name]} />
         </div>
       )
       i += 2
     } else {
       rows.push(
         <div key={field.name}>
-          <FormField field={field} error={errors[field.name]} onBlur={onBlur} onPlaceSelect={onPlaceSelect} labelOverride={label} />
+          <FormField field={field} error={errors[field.name]} onBlur={onBlur} onPlaceSelect={onPlaceSelect} labelOverride={label} defaultValue={initialValues[field.name]} />
         </div>
       )
       i += 1
@@ -375,13 +379,13 @@ const SECTIONS = [
   { key: 'additional' as const, title: 'Additional Information', description: 'Questions, comments, and delivery instructions.' },
 ]
 
-export function IntakeForm({ taskId }: { taskId: string }) {
+export function IntakeForm({ taskId, initialValues = {} }: { taskId: string; initialValues?: Record<string, string> }) {
   const [status, setStatus] = useState<'idle' | 'submitting' | 'success' | 'error'>('idle')
   const [errorMsg, setErrorMsg] = useState('')
   const [files, setFiles] = useState<Record<string, File | null>>({})
   const [errors, setErrors] = useState<Record<string, string | null>>({})
   const [fileErrors, setFileErrors] = useState<Record<string, string | null>>({})
-  const [selectedPackage, setSelectedPackage] = useState('')
+  const [selectedPackage, setSelectedPackage] = useState(initialValues.package || '')
   const validPlaces = useRef<Record<string, boolean>>({})
 
   const handlePlaceSelect = useCallback((name: string, valid: boolean) => {
@@ -575,7 +579,7 @@ export function IntakeForm({ taskId }: { taskId: string }) {
               <p className="text-sm text-[#9a9890] font-[family-name:var(--font-jost)] mt-0.5">{section.description}</p>
             </div>
             <div className="px-6 py-6">
-              {renderFieldGrid(fields, errors, handleFieldBlur, handlePlaceSelect, selectedPackage)}
+              {renderFieldGrid(fields, errors, handleFieldBlur, handlePlaceSelect, selectedPackage, initialValues)}
             </div>
           </div>
         )
