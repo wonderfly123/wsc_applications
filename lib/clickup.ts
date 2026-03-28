@@ -165,6 +165,8 @@ export async function fetchTask(taskId: string): Promise<BEOData | null> {
         data.attachments.push({ title, url, mimetype, category: 'Stamp Logo' })
       } else if (title.startsWith('[DELIVERY MAP]')) {
         data.attachments.push({ title, url, mimetype, category: 'Delivery Map' })
+      } else {
+        data.attachments.push({ title, url, mimetype, category: 'Other' })
       }
     }
   }
