@@ -154,6 +154,19 @@ export async function fetchTaskInitialValues(taskId: string): Promise<Record<str
   // Task name → eventName
   if (task.name) values.eventName = task.name
 
+  // Task-level dates → eventDate, setupTime, teardownTime
+  // For Sandcastle: start_date === due_date (drop-off), teardownTime won't render but is harmless
+  if (task.start_date) {
+    const start = new Date(Number(task.start_date))
+    values.eventDate = start.toISOString().slice(0, 10)
+    values.setupTime = start.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
+  }
+  if (task.due_date) {
+    const due = new Date(Number(task.due_date))
+    values.teardownTime = due.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
+    if (!values.eventDate) values.eventDate = due.toISOString().slice(0, 10)
+  }
+
   // Map custom fields by ID to intake field names
   const fieldIdToName = new Map<string, { name: string; clickupFieldType: string; options?: string[] }>()
   for (const f of INTAKE_FIELDS) {
@@ -170,6 +183,12 @@ export async function fetchTaskInitialValues(taskId: string): Promise<Record<str
         (o: { orderindex: number; name: string }) => o.orderindex === cf.value
       )
       if (option) values[mapping.name] = option.name
+    } else if (mapping.clickupFieldType === 'date') {
+      // Date custom fields stored as epoch ms — extract time portion (HH:mm)
+      const ms = Number(cf.value)
+      if (!isNaN(ms) && ms > 0) {
+        values[mapping.name] = new Date(ms).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
+      }
     } else if (mapping.clickupFieldType === 'number') {
       values[mapping.name] = String(cf.value)
     } else if (mapping.clickupFieldType === 'phone') {
