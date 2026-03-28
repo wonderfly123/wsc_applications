@@ -39,15 +39,7 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    // Build task description from deal data
-    const description = [
-      `Pipedrive Deal: ${dealTitle} (ID: ${pipedriveDealId})`,
-      `Contact: ${contactName}`,
-      `Email: ${contactEmail}`,
-      contactPhone ? `Phone: ${contactPhone}` : '',
-      eventDate ? `Event Date: ${eventDate}` : '',
-      coconutQty ? `Coconuts: ${coconutQty}` : '',
-    ].filter(Boolean).join('\n')
+    const description = ''
 
     // Split contact name into first/last
     const nameParts = contactName.trim().split(/\s+/)

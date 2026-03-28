@@ -30,7 +30,7 @@ export async function POST(
     const { taskId } = params
 
     // Build custom field updates from form data
-    const fieldUpdates: Array<{ id: string; value: unknown }> = []
+    const fieldUpdates: Array<{ id: string; value: unknown; value_options?: Record<string, unknown> }> = []
 
     for (const field of INTAKE_FIELDS) {
       const rawValue = formData.get(field.name) as string | null
@@ -45,7 +45,8 @@ export async function POST(
           break
         case 'date':
           value = new Date(rawValue).getTime()
-          break
+          fieldUpdates.push({ id: field.clickupFieldId, value, value_options: { time: true } })
+          continue
         case 'drop_down': {
           const optionIndex = field.options?.indexOf(rawValue)
           if (optionIndex !== undefined && optionIndex >= 0) {
@@ -93,10 +94,16 @@ export async function POST(
       if (eventName) taskUpdate.name = eventName
 
       const eventStart = formData.get('eventStart') as string | null
-      if (eventStart) taskUpdate.start_date = new Date(eventStart).getTime()
+      if (eventStart) {
+        taskUpdate.start_date = new Date(eventStart).getTime()
+        taskUpdate.start_date_time = true
+      }
 
       const eventEnd = formData.get('eventEnd') as string | null
-      if (eventEnd) taskUpdate.due_date = new Date(eventEnd).getTime()
+      if (eventEnd) {
+        taskUpdate.due_date = new Date(eventEnd).getTime()
+        taskUpdate.due_date_time = true
+      }
 
       if (Object.keys(taskUpdate).length > 0) {
         await fetch(`https://api.clickup.com/api/v2/task/${taskId}`, {

@@ -81,8 +81,14 @@ export async function createTask(
   if (customFields?.length) {
     body.custom_fields = customFields
   }
-  if (options?.startDate) body.start_date = options.startDate
-  if (options?.dueDate) body.due_date = options.dueDate
+  if (options?.startDate) {
+    body.start_date = options.startDate
+    body.start_date_time = true
+  }
+  if (options?.dueDate) {
+    body.due_date = options.dueDate
+    body.due_date_time = true
+  }
 
   const res = await fetch(`https://api.clickup.com/api/v2/list/${listId}/task`, {
     method: 'POST',
@@ -103,24 +109,26 @@ export async function createTask(
 
 export async function updateTaskFields(
   taskId: string,
-  fields: Array<{ id: string; value: unknown }>
+  fields: Array<{ id: string; value: unknown; value_options?: Record<string, unknown> }>
 ): Promise<void> {
   const apiKey = process.env.CLICKUP_API_KEY
   if (!apiKey) throw new Error('CLICKUP_API_KEY not set')
 
   const results = await Promise.allSettled(
-    fields.map((field) =>
-      fetch(`https://api.clickup.com/api/v2/task/${taskId}/field/${field.id}`, {
+    fields.map((field) => {
+      const body: Record<string, unknown> = { value: field.value }
+      if (field.value_options) body.value_options = field.value_options
+      return fetch(`https://api.clickup.com/api/v2/task/${taskId}/field/${field.id}`, {
         method: 'POST',
         headers: {
           Authorization: apiKey,
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ value: field.value }),
+        body: JSON.stringify(body),
       }).then((res) => {
         if (!res.ok) throw new Error(`ClickUp field update failed: ${field.id} — ${res.status}`)
       })
-    )
+    })
   )
 
   const failures = results.filter((r) => r.status === 'rejected') as PromiseRejectedResult[]
