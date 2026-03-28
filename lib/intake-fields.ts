@@ -51,7 +51,7 @@ export const INTAKE_FIELDS: IntakeFieldDef[] = [
 
 // File upload fields — uploaded as task attachments with prefixed filenames
 export const UPLOAD_FIELDS = [
-  { name: 'stampLogo', label: 'Stamp Logo File', prefix: '[STAMP LOGO]', required: true, accept: 'image/png,image/jpeg', helpText: 'Upload your logo image (png or jpg)' },
+  { name: 'stampLogo', label: 'Stamp Logo File', prefix: '[STAMP LOGO]', required: false, accept: 'image/png,image/jpeg', helpText: 'Upload your logo image (png or jpg)' },
   { name: 'deliveryMap', label: 'Map of Vendor Delivery Location', prefix: '[DELIVERY MAP]', required: false, accept: 'image/png,image/jpeg,application/pdf', helpText: 'Upload an event/delivery map if available' },
 ]
 
