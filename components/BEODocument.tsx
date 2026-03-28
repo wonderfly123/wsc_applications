@@ -165,11 +165,6 @@ export function BEODocument({ data, taskId }: { data: BEOData; taskId: string })
           <FieldRow>
             <FullWidthField label="Insurance Requirements" value={data.insurance} />
           </FieldRow>
-          {isSandcastle || (
-            <FieldRow>
-              <FullWidthField label="Delivery Instructions" value={data.deliveryInstructions} />
-            </FieldRow>
-          )}
           <FieldRow last>
             <FullWidthField label="Event Notes" value={data.eventNotes} notes />
           </FieldRow>
