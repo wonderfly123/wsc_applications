@@ -41,14 +41,7 @@ export default async function IntakePage({
 
       {/* Intro */}
       <div className="max-w-2xl mx-auto px-6 pt-8 pb-2">
-        <h1 className="font-[family-name:var(--font-cormorant)] text-3xl font-semibold text-[#1e1d1a] mb-2">
-          Let&apos;s Plan Your Event
-        </h1>
-        <p className="text-base text-[#878774] font-[family-name:var(--font-jost)] leading-relaxed">
-          Thanks for booking with us! Please complete the details below so we can deliver
-          a seamless experience at your event. This takes less than 5 minutes.
-        </p>
-        <p className="text-sm text-[#9a9890] font-[family-name:var(--font-jost)] mt-3">
+        <p className="text-sm text-[#9a9890] font-[family-name:var(--font-jost)]">
           This link is unique to your event. If you need to come back later, bookmark this page or find the link in your email.
         </p>
       </div>

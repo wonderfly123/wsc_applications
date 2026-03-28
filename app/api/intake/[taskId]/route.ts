@@ -32,6 +32,8 @@ export async function POST(
     // Build custom field updates from form data
     const fieldUpdates: Array<{ id: string; value: unknown; value_options?: Record<string, unknown> }> = []
 
+    const eventDate = formData.get('eventDate') as string || ''
+
     for (const field of INTAKE_FIELDS) {
       const rawValue = formData.get(field.name) as string | null
       if (!rawValue) continue
@@ -44,7 +46,8 @@ export async function POST(
           value = Number(rawValue)
           break
         case 'date':
-          value = new Date(rawValue).getTime()
+          // Time fields are combined with the event date
+          value = eventDate ? new Date(`${eventDate}T${rawValue}`).getTime() : new Date(rawValue).getTime()
           fieldUpdates.push({ id: field.clickupFieldId, value, value_options: { time: true } })
           continue
         case 'drop_down': {
@@ -93,15 +96,22 @@ export async function POST(
       const eventName = formData.get('eventName') as string | null
       if (eventName) taskUpdate.name = eventName
 
-      const eventStart = formData.get('eventStart') as string | null
-      if (eventStart) {
-        taskUpdate.start_date = new Date(eventStart).getTime()
+      const setupTime = formData.get('setupTime') as string | null
+      const teardownTime = formData.get('teardownTime') as string | null
+      if (eventDate && setupTime) {
+        const setupTimestamp = new Date(`${eventDate}T${setupTime}`).getTime()
+        taskUpdate.start_date = setupTimestamp
         taskUpdate.start_date_time = true
+
+        // Sandcastle is a drop-off — same time for start and due date
+        if (!teardownTime) {
+          taskUpdate.due_date = setupTimestamp
+          taskUpdate.due_date_time = true
+        }
       }
 
-      const eventEnd = formData.get('eventEnd') as string | null
-      if (eventEnd) {
-        taskUpdate.due_date = new Date(eventEnd).getTime()
+      if (teardownTime && eventDate) {
+        taskUpdate.due_date = new Date(`${eventDate}T${teardownTime}`).getTime()
         taskUpdate.due_date_time = true
       }
 

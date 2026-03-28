@@ -1,7 +1,7 @@
 export interface IntakeFieldDef {
   name: string
   label: string
-  type: 'text' | 'email' | 'tel' | 'date' | 'datetime-local' | 'number' | 'textarea' | 'select' | 'location'
+  type: 'text' | 'email' | 'tel' | 'date' | 'time' | 'datetime-local' | 'number' | 'textarea' | 'select' | 'location'
   required: boolean
   clickupFieldId: string
   clickupFieldType: string // how ClickUp stores it (short_text, number, drop_down, date, location, etc.)
@@ -10,6 +10,8 @@ export interface IntakeFieldDef {
   helpText?: string
   section: 'client' | 'package' | 'timing' | 'additional'
   half?: boolean // render at half width (side-by-side)
+  hideWhenPackage?: string[] // hide this field when package matches one of these values
+  labelByPackage?: Record<string, string> // override label when package matches
 }
 
 // Matches the ClickUp Events list custom fields exactly
@@ -23,19 +25,20 @@ export const INTAKE_FIELDS: IntakeFieldDef[] = [
   { name: 'company', label: 'Company', type: 'text', required: false, clickupFieldId: '75e86982-b682-4c56-86c4-2007b87d89df', clickupFieldType: 'short_text', placeholder: 'If applicable', section: 'client', half: true },
 
   // === Event Package Details ===
+  { name: 'package', label: 'Package', type: 'select', required: true, clickupFieldId: '72edb0f2-022a-4db4-8ec4-88d694cd54b0', clickupFieldType: 'drop_down', options: ['Sandcastle', 'Cabana', 'Villa'], section: 'package' },
   { name: 'eventType', label: 'Event Type', type: 'select', required: true, clickupFieldId: 'afb623cf-472e-4d03-b220-bf3b3ce11bc6', clickupFieldType: 'drop_down', options: ['Conference', 'Birthday Party', 'Corporate Event', 'Shower', 'Wedding', 'Special Event', 'Brand Activation', 'Other'], section: 'package', half: true },
   { name: 'headcount', label: 'Headcount', type: 'number', required: true, clickupFieldId: '019ed06a-6a3a-4782-877f-ec4e94b0ac30', clickupFieldType: 'number', section: 'package', half: true },
-  { name: 'package', label: 'Package', type: 'select', required: true, clickupFieldId: '72edb0f2-022a-4db4-8ec4-88d694cd54b0', clickupFieldType: 'drop_down', options: ['Sandcastle', 'Cabana', 'Villa'], section: 'package', half: true },
-  { name: 'garnish', label: 'Garnish', type: 'select', required: true, clickupFieldId: 'b9341990-5265-41a1-ba1e-4cbd3c767084', clickupFieldType: 'drop_down', options: ['Orchids', 'Umbrellas', 'Pineapple Leaves'], section: 'package', half: true },
+  { name: 'garnish', label: 'Garnish', type: 'select', required: true, clickupFieldId: 'b9341990-5265-41a1-ba1e-4cbd3c767084', clickupFieldType: 'drop_down', options: ['N/A', 'Orchids', 'Umbrellas', 'Pineapple Leaves'], section: 'package', half: true },
   { name: 'coconutQty', label: 'Coconut Quantity', type: 'number', required: true, clickupFieldId: '3e9943e1-4e51-466b-9d6d-f01e862a1bec', clickupFieldType: 'number', section: 'package', half: true },
-  { name: 'readyBy', label: 'Coconuts Opened by Service Time', type: 'number', required: true, clickupFieldId: '54389f19-e059-4418-b842-1b1cd12539ca', clickupFieldType: 'number', section: 'package', half: true },
-  { name: 'setupProvided', label: 'Setup Provided?', type: 'select', required: true, clickupFieldId: '87c25b9c-21b0-4420-8ad9-3d36265d567b', clickupFieldType: 'drop_down', options: ['Yes', 'No'], helpText: 'Do you have an existing setup you\'d like us to use?', section: 'package' },
+  { name: 'readyBy', label: 'Coconuts Opened by Service Time', type: 'number', required: true, clickupFieldId: '54389f19-e059-4418-b842-1b1cd12539ca', clickupFieldType: 'number', section: 'package', half: true, hideWhenPackage: ['Sandcastle'] },
+  { name: 'setupProvided', label: 'Setup Provided?', type: 'select', required: true, clickupFieldId: '87c25b9c-21b0-4420-8ad9-3d36265d567b', clickupFieldType: 'drop_down', options: ['N/A', 'Yes', 'No'], helpText: 'Do you have an existing setup you\'d like us to use?', section: 'package' },
 
   // === Event Location and Timing ===
-  { name: 'eventStart', label: 'Event Start Date and Time', type: 'datetime-local', required: true, clickupFieldId: '', clickupFieldType: 'task_start_date', section: 'timing', half: true },
-  { name: 'eventEnd', label: 'Event End Date and Time', type: 'datetime-local', required: true, clickupFieldId: '', clickupFieldType: 'task_due_date', section: 'timing', half: true },
-  { name: 'serviceStart', label: 'Service Start Date and Time', type: 'datetime-local', required: true, clickupFieldId: 'f6483054-1434-4c04-ac53-06af6042a96f', clickupFieldType: 'date', section: 'timing', half: true },
-  { name: 'serviceEnd', label: 'Service End Date and Time', type: 'datetime-local', required: true, clickupFieldId: 'c4bcdf67-b72d-4531-953e-5cb542b14a3e', clickupFieldType: 'date', section: 'timing', half: true },
+  { name: 'eventDate', label: 'Event Date', type: 'date', required: true, clickupFieldId: '', clickupFieldType: 'event_date', section: 'timing' },
+  { name: 'setupTime', label: 'Set Up Time', type: 'time', required: true, clickupFieldId: '', clickupFieldType: 'task_start_date', section: 'timing', half: true, labelByPackage: { Sandcastle: 'Drop Off Time' } },
+  { name: 'teardownTime', label: 'Tear Down Time', type: 'time', required: true, clickupFieldId: '', clickupFieldType: 'task_due_date', section: 'timing', half: true, hideWhenPackage: ['Sandcastle'] },
+  { name: 'serviceStart', label: 'Service Start Time', type: 'time', required: true, clickupFieldId: 'f6483054-1434-4c04-ac53-06af6042a96f', clickupFieldType: 'date', section: 'timing', half: true, hideWhenPackage: ['Sandcastle'] },
+  { name: 'serviceEnd', label: 'Service End Time', type: 'time', required: true, clickupFieldId: 'c4bcdf67-b72d-4531-953e-5cb542b14a3e', clickupFieldType: 'date', section: 'timing', half: true, hideWhenPackage: ['Sandcastle'] },
   { name: 'eventLocation', label: 'Event Location', type: 'text', required: true, clickupFieldId: 'b92b1e46-363e-4453-9888-b530ecdeefce', clickupFieldType: 'location', placeholder: 'Venue name and address', section: 'timing', half: true },
   { name: 'loadInLocation', label: 'Vendor Load-in Location', type: 'text', required: true, clickupFieldId: '967038c5-4d18-41d5-8c63-f01bf20ece7a', clickupFieldType: 'location', placeholder: 'Where should we load in?', section: 'timing', half: true },
 

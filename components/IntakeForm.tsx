@@ -23,24 +23,24 @@ function validateField(field: IntakeFieldDef, value: string): string | null {
   return null
 }
 
-function validateDatePairs(values: Record<string, string>): Record<string, string | null> {
+function validateTimePairs(values: Record<string, string>): Record<string, string | null> {
   const errs: Record<string, string | null> = {}
-  const eventStart = values.eventStart ? new Date(values.eventStart) : null
-  const eventEnd = values.eventEnd ? new Date(values.eventEnd) : null
-  const serviceStart = values.serviceStart ? new Date(values.serviceStart) : null
-  const serviceEnd = values.serviceEnd ? new Date(values.serviceEnd) : null
+  const setup = values.setupTime || ''
+  const teardown = values.teardownTime || ''
+  const serviceStart = values.serviceStart || ''
+  const serviceEnd = values.serviceEnd || ''
 
-  if (eventStart && eventEnd && eventEnd <= eventStart) {
-    errs.eventEnd = 'Event end must be after event start'
+  if (setup && teardown && teardown <= setup) {
+    errs.teardownTime = 'Tear down must be after set up'
   }
   if (serviceStart && serviceEnd && serviceEnd <= serviceStart) {
     errs.serviceEnd = 'Service end must be after service start'
   }
-  if (eventStart && serviceStart && serviceStart < eventStart) {
-    errs.serviceStart = 'Service start cannot be before event start'
+  if (setup && serviceStart && serviceStart < setup) {
+    errs.serviceStart = 'Service start cannot be before set up time'
   }
-  if (eventEnd && serviceEnd && serviceEnd > eventEnd) {
-    errs.serviceEnd = errs.serviceEnd || 'Service end cannot be after event end'
+  if (teardown && serviceEnd && serviceEnd > teardown) {
+    errs.serviceEnd = errs.serviceEnd || 'Service end cannot be after tear down time'
   }
   return errs
 }
@@ -189,7 +189,7 @@ function PlacesAutocomplete({ name, required, placeholder, baseClass, onBlur, on
   )
 }
 
-function FormField({ field, error, onBlur, onPlaceSelect }: { field: IntakeFieldDef; error?: string | null; onBlur?: (name: string, value: string) => void; onPlaceSelect?: (name: string, valid: boolean) => void }) {
+function FormField({ field, error, onBlur, onPlaceSelect, labelOverride }: { field: IntakeFieldDef; error?: string | null; onBlur?: (name: string, value: string) => void; onPlaceSelect?: (name: string, valid: boolean) => void; labelOverride?: string }) {
   const hasError = !!error
   const normalClass =
     'w-full max-w-full rounded-lg px-4 py-3 border border-[#d8d5cc] bg-white text-[#1e1d1a] font-[family-name:var(--font-jost)] text-[15px] placeholder:text-[#bbb8b0] focus:outline-none focus:border-[#8b6914] focus:ring-2 focus:ring-[#8b6914]/20 transition-all box-border'
@@ -207,7 +207,7 @@ function FormField({ field, error, onBlur, onPlaceSelect }: { field: IntakeField
         htmlFor={field.name}
         className="block text-[15px] font-medium text-[#1e1d1a] font-[family-name:var(--font-jost)] mb-1.5"
       >
-        {field.label}
+        {labelOverride || field.label}
         {field.required && <span className="text-[#c44b2b] ml-0.5">*</span>}
       </label>
       {field.helpText && (
@@ -337,26 +337,28 @@ function FileUploadField({ name, label, required, accept, helpText, file, onFile
   )
 }
 
-function renderFieldGrid(fields: IntakeFieldDef[], errors: Record<string, string | null>, onBlur: (name: string, value: string) => void, onPlaceSelect: (name: string, valid: boolean) => void) {
+function renderFieldGrid(fields: IntakeFieldDef[], errors: Record<string, string | null>, onBlur: (name: string, value: string) => void, onPlaceSelect: (name: string, valid: boolean) => void, selectedPackage: string) {
   const rows: React.ReactNode[] = []
   let i = 0
 
   while (i < fields.length) {
     const field = fields[i]
     const next = fields[i + 1]
+    const label = (selectedPackage && field.labelByPackage?.[selectedPackage]) || undefined
+    const nextLabel = next ? (selectedPackage && next.labelByPackage?.[selectedPackage]) || undefined : undefined
 
     if (field.half && next?.half) {
       rows.push(
         <div key={field.name} className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <FormField field={field} error={errors[field.name]} onBlur={onBlur} onPlaceSelect={onPlaceSelect} />
-          <FormField field={next} error={errors[next.name]} onBlur={onBlur} onPlaceSelect={onPlaceSelect} />
+          <FormField field={field} error={errors[field.name]} onBlur={onBlur} onPlaceSelect={onPlaceSelect} labelOverride={label} />
+          <FormField field={next} error={errors[next.name]} onBlur={onBlur} onPlaceSelect={onPlaceSelect} labelOverride={nextLabel} />
         </div>
       )
       i += 2
     } else {
       rows.push(
         <div key={field.name}>
-          <FormField field={field} error={errors[field.name]} onBlur={onBlur} onPlaceSelect={onPlaceSelect} />
+          <FormField field={field} error={errors[field.name]} onBlur={onBlur} onPlaceSelect={onPlaceSelect} labelOverride={label} />
         </div>
       )
       i += 1
@@ -379,6 +381,7 @@ export function IntakeForm({ taskId }: { taskId: string }) {
   const [files, setFiles] = useState<Record<string, File | null>>({})
   const [errors, setErrors] = useState<Record<string, string | null>>({})
   const [fileErrors, setFileErrors] = useState<Record<string, string | null>>({})
+  const [selectedPackage, setSelectedPackage] = useState('')
   const validPlaces = useRef<Record<string, boolean>>({})
 
   const handlePlaceSelect = useCallback((name: string, valid: boolean) => {
@@ -389,6 +392,7 @@ export function IntakeForm({ taskId }: { taskId: string }) {
   }, [])
 
   const handleFieldBlur = useCallback((name: string, value: string) => {
+    if (name === 'package') setSelectedPackage(value)
     const field = INTAKE_FIELDS.find((f) => f.name === name)
     if (!field) return
     const error = validateField(field, value)
@@ -402,24 +406,24 @@ export function IntakeForm({ taskId }: { taskId: string }) {
         }
       }
 
-      // For date fields, run cross-field date pair validation
-      if (field.type === 'datetime-local') {
+      // For time fields, run cross-field time pair validation
+      if (field.type === 'time') {
         const form = document.querySelector('form')
         if (form) {
           const formData = new FormData(form)
           const values: Record<string, string> = {}
           for (const f of INTAKE_FIELDS) {
-            if (f.type === 'datetime-local') {
+            if (f.type === 'time') {
               values[f.name] = f.name === name ? value : (formData.get(f.name) as string) || ''
             }
           }
-          const dateErrors = validateDatePairs(values)
-          for (const [key, msg] of Object.entries(dateErrors)) {
-            updated[key] = msg
+          const timeErrors = validateTimePairs(values)
+          for (const [key, msg] of Object.entries(timeErrors)) {
+            if (msg) updated[key] = msg
           }
-          // Clear date pair errors that are no longer present
+          // Clear time pair errors that are no longer present
           for (const f of INTAKE_FIELDS) {
-            if (f.type === 'datetime-local' && !dateErrors[f.name] && !validateField(f, f.name === name ? value : (formData.get(f.name) as string) || '')) {
+            if (f.type === 'time' && !timeErrors[f.name] && !validateField(f, f.name === name ? value : (formData.get(f.name) as string) || '')) {
               updated[f.name] = null
             }
           }
@@ -446,14 +450,18 @@ export function IntakeForm({ taskId }: { taskId: string }) {
     const newErrors: Record<string, string | null> = {}
     let hasError = false
 
-    const dateValues: Record<string, string> = {}
+    const currentPackage = (formData.get('package') as string) || ''
+    const timeValues: Record<string, string> = {}
     for (const field of INTAKE_FIELDS) {
+      // Skip fields hidden by package selection
+      if (field.hideWhenPackage?.includes(currentPackage)) continue
+
       const val = (formData.get(field.name) as string) || ''
       const error = validateField(field, val)
       newErrors[field.name] = error
       if (error) hasError = true
 
-      if (field.type === 'datetime-local') dateValues[field.name] = val
+      if (field.type === 'time') timeValues[field.name] = val
 
       // Validate location fields have a Google-selected address
       if (field.clickupFieldType === 'location' && val.trim() && !error) {
@@ -464,9 +472,9 @@ export function IntakeForm({ taskId }: { taskId: string }) {
       }
     }
 
-    // Validate date pairs (end after start, service within event)
-    const dateErrors = validateDatePairs(dateValues)
-    for (const [key, msg] of Object.entries(dateErrors)) {
+    // Validate time pairs (tear down after set up, service within set up/tear down)
+    const timeErrors = validateTimePairs(timeValues)
+    for (const [key, msg] of Object.entries(timeErrors)) {
       if (msg) {
         newErrors[key] = msg
         hasError = true
@@ -557,7 +565,7 @@ export function IntakeForm({ taskId }: { taskId: string }) {
   return (
     <form onSubmit={handleSubmit} className="space-y-8">
       {SECTIONS.map((section) => {
-        const fields = INTAKE_FIELDS.filter((f) => f.section === section.key)
+        const fields = INTAKE_FIELDS.filter((f) => f.section === section.key && !(f.hideWhenPackage && f.hideWhenPackage.includes(selectedPackage)))
         return (
           <div key={section.key} className="bg-white rounded-xl border border-[#e0ddd4]">
             <div className="px-6 pt-6 pb-4 border-b border-[#e8e5dd]">
@@ -567,7 +575,7 @@ export function IntakeForm({ taskId }: { taskId: string }) {
               <p className="text-sm text-[#9a9890] font-[family-name:var(--font-jost)] mt-0.5">{section.description}</p>
             </div>
             <div className="px-6 py-6">
-              {renderFieldGrid(fields, errors, handleFieldBlur, handlePlaceSelect)}
+              {renderFieldGrid(fields, errors, handleFieldBlur, handlePlaceSelect, selectedPackage)}
             </div>
           </div>
         )
