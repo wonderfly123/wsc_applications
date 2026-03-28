@@ -155,16 +155,17 @@ export async function fetchTaskInitialValues(taskId: string): Promise<Record<str
   if (task.name) values.eventName = task.name
 
   // Task-level dates → eventDate, setupTime, teardownTime
-  // For Sandcastle: start_date === due_date (drop-off), teardownTime won't render but is harmless
+  // Epochs are UTC. Use toISOString() (always UTC) so the round-trip is consistent
+  // with how the API route stores them (Vercel parses "dateThh:mm" as UTC).
   if (task.start_date) {
-    const start = new Date(Number(task.start_date))
-    values.eventDate = start.toISOString().slice(0, 10)
-    values.setupTime = start.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
+    const iso = new Date(Number(task.start_date)).toISOString()
+    values.eventDate = iso.slice(0, 10)
+    values.setupTime = iso.slice(11, 16)
   }
   if (task.due_date) {
-    const due = new Date(Number(task.due_date))
-    values.teardownTime = due.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
-    if (!values.eventDate) values.eventDate = due.toISOString().slice(0, 10)
+    const iso = new Date(Number(task.due_date)).toISOString()
+    values.teardownTime = iso.slice(11, 16)
+    if (!values.eventDate) values.eventDate = iso.slice(0, 10)
   }
 
   // Map custom fields by ID to intake field names
@@ -184,10 +185,10 @@ export async function fetchTaskInitialValues(taskId: string): Promise<Record<str
       )
       if (option) values[mapping.name] = option.name
     } else if (mapping.clickupFieldType === 'date') {
-      // Date custom fields stored as epoch ms — extract time portion (HH:mm)
+      // Date custom fields stored as epoch ms — extract UTC time portion (HH:mm)
       const ms = Number(cf.value)
       if (!isNaN(ms) && ms > 0) {
-        values[mapping.name] = new Date(ms).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
+        values[mapping.name] = new Date(ms).toISOString().slice(11, 16)
       }
     } else if (mapping.clickupFieldType === 'location' && typeof cf.value === 'object' && cf.value !== null) {
       const addr = (cf.value as { formatted_address?: string }).formatted_address

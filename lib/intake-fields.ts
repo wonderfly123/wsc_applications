@@ -30,7 +30,7 @@ export const INTAKE_FIELDS: IntakeFieldDef[] = [
   { name: 'headcount', label: 'Headcount', type: 'number', required: true, clickupFieldId: '019ed06a-6a3a-4782-877f-ec4e94b0ac30', clickupFieldType: 'number', section: 'package', half: true },
   { name: 'garnish', label: 'Garnish', type: 'select', required: true, clickupFieldId: 'b9341990-5265-41a1-ba1e-4cbd3c767084', clickupFieldType: 'drop_down', options: ['N/A', 'Orchids', 'Umbrellas', 'Pineapple Leaves'], section: 'package', half: true },
   { name: 'coconutQty', label: 'Coconut Quantity', type: 'number', required: true, clickupFieldId: '3e9943e1-4e51-466b-9d6d-f01e862a1bec', clickupFieldType: 'number', section: 'package', half: true },
-  { name: 'readyBy', label: 'Coconuts Opened by Service Time', type: 'number', required: true, clickupFieldId: '54389f19-e059-4418-b842-1b1cd12539ca', clickupFieldType: 'number', helpText: 'Number of coconuts to be opened and ready by start of service', section: 'package', half: true, hideWhenPackage: ['Sandcastle'] },
+  { name: 'readyBy', label: 'Coconuts Opened by Service Time', type: 'number', required: true, clickupFieldId: '54389f19-e059-4418-b842-1b1cd12539ca', clickupFieldType: 'number', helpText: 'Coconuts opened and ready before service', section: 'package', half: true, hideWhenPackage: ['Sandcastle'] },
   { name: 'setupProvided', label: 'Setup Provided?', type: 'select', required: true, clickupFieldId: '87c25b9c-21b0-4420-8ad9-3d36265d567b', clickupFieldType: 'drop_down', options: ['N/A', 'Yes', 'No'], helpText: 'Do you have an existing setup you\'d like us to use?', section: 'package', half: true, hideWhenPackage: ['Sandcastle'] },
 
   // === Event Location and Timing ===
