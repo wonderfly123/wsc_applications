@@ -84,18 +84,28 @@ export async function POST(
     // Mark intake as complete (0 = "Yes", first option)
     fieldUpdates.push({ id: INTAKE_COMPLETE_FIELD_ID, value: 0 })
 
-    // Update task name if eventName was provided
-    const eventName = formData.get('eventName') as string | null
-    if (eventName) {
-      const apiKey = process.env.CLICKUP_API_KEY
-      if (apiKey) {
+    // Update task-level fields (name, start date, due date)
+    const apiKey = process.env.CLICKUP_API_KEY
+    if (apiKey) {
+      const taskUpdate: Record<string, unknown> = {}
+
+      const eventName = formData.get('eventName') as string | null
+      if (eventName) taskUpdate.name = eventName
+
+      const eventStart = formData.get('eventStart') as string | null
+      if (eventStart) taskUpdate.start_date = new Date(eventStart).getTime()
+
+      const eventEnd = formData.get('eventEnd') as string | null
+      if (eventEnd) taskUpdate.due_date = new Date(eventEnd).getTime()
+
+      if (Object.keys(taskUpdate).length > 0) {
         await fetch(`https://api.clickup.com/api/v2/task/${taskId}`, {
           method: 'PUT',
           headers: {
             Authorization: apiKey,
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify({ name: eventName }),
+          body: JSON.stringify(taskUpdate),
         })
       }
     }

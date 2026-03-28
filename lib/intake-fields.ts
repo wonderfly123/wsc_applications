@@ -32,8 +32,10 @@ export const INTAKE_FIELDS: IntakeFieldDef[] = [
   { name: 'setupProvided', label: 'Setup Provided?', type: 'select', required: true, clickupFieldId: '87c25b9c-21b0-4420-8ad9-3d36265d567b', clickupFieldType: 'drop_down', options: ['Yes', 'No'], helpText: 'Do you have an existing setup you\'d like us to use?', section: 'package' },
 
   // === Event Location and Timing ===
-  { name: 'serviceStart', label: 'Service Start', type: 'datetime-local', required: true, clickupFieldId: 'f6483054-1434-4c04-ac53-06af6042a96f', clickupFieldType: 'date', section: 'timing', half: true },
-  { name: 'serviceEnd', label: 'Service End', type: 'datetime-local', required: true, clickupFieldId: 'c4bcdf67-b72d-4531-953e-5cb542b14a3e', clickupFieldType: 'date', section: 'timing', half: true },
+  { name: 'eventStart', label: 'Event Start Date and Time', type: 'datetime-local', required: true, clickupFieldId: '', clickupFieldType: 'task_start_date', section: 'timing', half: true },
+  { name: 'eventEnd', label: 'Event End Date and Time', type: 'datetime-local', required: true, clickupFieldId: '', clickupFieldType: 'task_due_date', section: 'timing', half: true },
+  { name: 'serviceStart', label: 'Service Start Date and Time', type: 'datetime-local', required: true, clickupFieldId: 'f6483054-1434-4c04-ac53-06af6042a96f', clickupFieldType: 'date', section: 'timing', half: true },
+  { name: 'serviceEnd', label: 'Service End Date and Time', type: 'datetime-local', required: true, clickupFieldId: 'c4bcdf67-b72d-4531-953e-5cb542b14a3e', clickupFieldType: 'date', section: 'timing', half: true },
   { name: 'eventLocation', label: 'Event Location', type: 'text', required: true, clickupFieldId: 'b92b1e46-363e-4453-9888-b530ecdeefce', clickupFieldType: 'location', placeholder: 'Venue name and address', section: 'timing', half: true },
   { name: 'loadInLocation', label: 'Vendor Load-in Location', type: 'text', required: true, clickupFieldId: '967038c5-4d18-41d5-8c63-f01bf20ece7a', clickupFieldType: 'location', placeholder: 'Where should we load in?', section: 'timing', half: true },
 
