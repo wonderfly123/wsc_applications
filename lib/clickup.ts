@@ -189,6 +189,9 @@ export async function fetchTaskInitialValues(taskId: string): Promise<Record<str
       if (!isNaN(ms) && ms > 0) {
         values[mapping.name] = new Date(ms).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
       }
+    } else if (mapping.clickupFieldType === 'location' && typeof cf.value === 'object' && cf.value !== null) {
+      const addr = (cf.value as { formatted_address?: string }).formatted_address
+      if (addr) values[mapping.name] = addr
     } else if (mapping.clickupFieldType === 'number') {
       values[mapping.name] = String(cf.value)
     } else if (mapping.clickupFieldType === 'phone') {
@@ -196,6 +199,11 @@ export async function fetchTaskInitialValues(taskId: string): Promise<Record<str
     } else if (typeof cf.value === 'string') {
       values[mapping.name] = cf.value
     }
+  }
+
+  // Fallback: if loadInLocation is empty, use eventLocation (useful for Sandcastle)
+  if (!values.loadInLocation && values.eventLocation) {
+    values.loadInLocation = values.eventLocation
   }
 
   return values

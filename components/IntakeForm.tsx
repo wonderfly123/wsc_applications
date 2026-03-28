@@ -136,13 +136,14 @@ function CustomSelect({ name, options, required, placeholder = 'Select...', erro
   )
 }
 
-function PlacesAutocomplete({ name, required, placeholder, baseClass, onBlur, onPlaceSelect }: {
+function PlacesAutocomplete({ name, required, placeholder, baseClass, onBlur, onPlaceSelect, defaultValue }: {
   name: string
   required: boolean
   placeholder?: string
   baseClass: string
   onBlur?: (value: string) => void
   onPlaceSelect?: (name: string, valid: boolean) => void
+  defaultValue?: string
 }) {
   const inputRef = useRef<HTMLInputElement>(null)
   const validAddressRef = useRef('')
@@ -186,6 +187,7 @@ function PlacesAutocomplete({ name, required, placeholder, baseClass, onBlur, on
       className={baseClass}
       autoComplete="off"
       onBlur={handleBlur}
+      defaultValue={defaultValue}
     />
   )
 }
@@ -232,6 +234,7 @@ function FormField({ field, error, onBlur, onPlaceSelect, labelOverride, default
           baseClass={baseClass}
           onBlur={(value) => onBlur?.(field.name, value)}
           onPlaceSelect={onPlaceSelect}
+          defaultValue={defaultValue}
         />
       ) : field.type === 'textarea' ? (
         <textarea
