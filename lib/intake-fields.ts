@@ -34,7 +34,6 @@ export const INTAKE_FIELDS: IntakeFieldDef[] = [
   { name: 'setupProvided', label: 'Setup Provided?', type: 'select', required: true, clickupFieldId: '87c25b9c-21b0-4420-8ad9-3d36265d567b', clickupFieldType: 'drop_down', options: ['N/A', 'Yes', 'No'], helpText: 'Do you have an existing setup you\'d like us to use?', section: 'package', half: true, hideWhenPackage: ['Sandcastle'] },
 
   // === Event Location and Timing ===
-  { name: 'eventTimezone', label: 'Event Timezone', type: 'select', required: true, clickupFieldId: '', clickupFieldType: 'ignore', options: ['Pacific Time (PT)', 'Mountain Time (MT)', 'Central Time (CT)', 'Eastern Time (ET)'], helpText: 'Timezone where the event takes place', section: 'timing' },
   { name: 'setupTime', label: 'Set Up Date and Time', type: 'datetime-local', required: true, clickupFieldId: '', clickupFieldType: 'task_start_date', section: 'timing', half: true, labelByPackage: { Sandcastle: 'Drop Off Date and Time' } },
   { name: 'teardownTime', label: 'Tear Down Date and Time', type: 'datetime-local', required: true, clickupFieldId: '', clickupFieldType: 'task_due_date', section: 'timing', half: true, hideWhenPackage: ['Sandcastle'] },
   { name: 'serviceStart', label: 'Service Start Date and Time', type: 'datetime-local', required: true, clickupFieldId: 'f6483054-1434-4c04-ac53-06af6042a96f', clickupFieldType: 'date', section: 'timing', half: true, hideWhenPackage: ['Sandcastle'] },
