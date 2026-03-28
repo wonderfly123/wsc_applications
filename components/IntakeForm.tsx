@@ -1,13 +1,44 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, useCallback } from 'react'
 import { INTAKE_FIELDS, UPLOAD_FIELDS, IntakeFieldDef } from '@/lib/intake-fields'
 
-function CustomSelect({ name, options, required, placeholder = 'Select...' }: {
+function validateField(field: IntakeFieldDef, value: string): string | null {
+  const trimmed = value.trim()
+  if (field.required && !trimmed) return `${field.label} is required`
+
+  if (!trimmed) return null
+
+  if (field.type === 'email' && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed)) {
+    return 'Please enter a valid email address'
+  }
+  if (field.type === 'tel' && !/^[\d\s()+-]{7,}$/.test(trimmed)) {
+    return 'Please enter a valid phone number'
+  }
+  if (field.type === 'number') {
+    const num = Number(trimmed)
+    if (isNaN(num) || num < 0) return 'Please enter a valid number'
+    if (num === 0 && field.required) return `${field.label} must be greater than 0`
+  }
+  return null
+}
+
+function FieldError({ message }: { message?: string | null }) {
+  if (!message) return null
+  return (
+    <p className="mt-1.5 text-[13px] text-[#c44b2b] font-[family-name:var(--font-jost)]">
+      {message}
+    </p>
+  )
+}
+
+function CustomSelect({ name, options, required, placeholder = 'Select...', error, onBlur }: {
   name: string
   options: string[]
   required: boolean
   placeholder?: string
+  error?: string | null
+  onBlur?: (value: string) => void
 }) {
   const [open, setOpen] = useState(false)
   const [selected, setSelected] = useState('')
@@ -16,11 +47,14 @@ function CustomSelect({ name, options, required, placeholder = 'Select...' }: {
 
   useEffect(() => {
     function handleClick(e: MouseEvent) {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false)
+      if (ref.current && !ref.current.contains(e.target as Node)) {
+        if (open) onBlur?.(selected)
+        setOpen(false)
+      }
     }
     document.addEventListener('mousedown', handleClick)
     return () => document.removeEventListener('mousedown', handleClick)
-  }, [])
+  }, [open, selected, onBlur])
 
   function handleToggle() {
     if (!open && ref.current) {
@@ -38,9 +72,11 @@ function CustomSelect({ name, options, required, placeholder = 'Select...' }: {
         type="button"
         onClick={handleToggle}
         className={`w-full rounded-lg px-4 py-3 border bg-white text-left font-[family-name:var(--font-jost)] text-[15px] transition-all flex items-center justify-between ${
-          open
-            ? 'border-[#8b6914] ring-2 ring-[#8b6914]/20'
-            : 'border-[#d8d5cc] hover:border-[#bbb8b0]'
+          error
+            ? 'border-[#c44b2b] ring-2 ring-[#c44b2b]/20'
+            : open
+              ? 'border-[#8b6914] ring-2 ring-[#8b6914]/20'
+              : 'border-[#d8d5cc] hover:border-[#bbb8b0]'
         }`}
       >
         <span className={selected ? 'text-[#1e1d1a]' : 'text-[#bbb8b0]'}>
@@ -61,7 +97,7 @@ function CustomSelect({ name, options, required, placeholder = 'Select...' }: {
             <button
               key={opt}
               type="button"
-              onClick={() => { setSelected(opt); setOpen(false) }}
+              onClick={() => { setSelected(opt); setOpen(false); onBlur?.(opt) }}
               className={`w-full text-left px-4 py-2.5 text-[15px] font-[family-name:var(--font-jost)] transition-colors ${
                 selected === opt
                   ? 'bg-[#8b6914]/10 text-[#8b6914]'
@@ -77,11 +113,12 @@ function CustomSelect({ name, options, required, placeholder = 'Select...' }: {
   )
 }
 
-function PlacesAutocomplete({ name, required, placeholder, baseClass }: {
+function PlacesAutocomplete({ name, required, placeholder, baseClass, onBlur }: {
   name: string
   required: boolean
   placeholder?: string
   baseClass: string
+  onBlur?: (value: string) => void
 }) {
   const inputRef = useRef<HTMLInputElement>(null)
 
@@ -98,9 +135,10 @@ function PlacesAutocomplete({ name, required, placeholder, baseClass }: {
       const place = autocomplete.getPlace()
       if (place.formatted_address && inputRef.current) {
         inputRef.current.value = place.formatted_address
+        onBlur?.(place.formatted_address)
       }
     })
-  }, [])
+  }, [onBlur])
 
   return (
     <input
@@ -111,13 +149,22 @@ function PlacesAutocomplete({ name, required, placeholder, baseClass }: {
       placeholder={placeholder}
       className={baseClass}
       autoComplete="off"
+      onBlur={(e) => onBlur?.(e.target.value)}
     />
   )
 }
 
-function FormField({ field }: { field: IntakeFieldDef }) {
-  const baseClass =
+function FormField({ field, error, onBlur }: { field: IntakeFieldDef; error?: string | null; onBlur?: (name: string, value: string) => void }) {
+  const hasError = !!error
+  const normalClass =
     'w-full max-w-full rounded-lg px-4 py-3 border border-[#d8d5cc] bg-white text-[#1e1d1a] font-[family-name:var(--font-jost)] text-[15px] placeholder:text-[#bbb8b0] focus:outline-none focus:border-[#8b6914] focus:ring-2 focus:ring-[#8b6914]/20 transition-all box-border'
+  const errorClass =
+    'w-full max-w-full rounded-lg px-4 py-3 border border-[#c44b2b] bg-white text-[#1e1d1a] font-[family-name:var(--font-jost)] text-[15px] placeholder:text-[#bbb8b0] focus:outline-none focus:border-[#c44b2b] focus:ring-2 focus:ring-[#c44b2b]/20 transition-all box-border'
+  const baseClass = hasError ? errorClass : normalClass
+
+  function handleBlur(e: React.FocusEvent<HTMLInputElement | HTMLTextAreaElement>) {
+    onBlur?.(field.name, e.target.value)
+  }
 
   return (
     <div>
@@ -137,6 +184,8 @@ function FormField({ field }: { field: IntakeFieldDef }) {
           name={field.name}
           options={field.options || []}
           required={field.required}
+          error={error}
+          onBlur={(value) => onBlur?.(field.name, value)}
         />
       ) : field.clickupFieldType === 'location' ? (
         <PlacesAutocomplete
@@ -144,6 +193,7 @@ function FormField({ field }: { field: IntakeFieldDef }) {
           required={field.required}
           placeholder={field.placeholder}
           baseClass={baseClass}
+          onBlur={(value) => onBlur?.(field.name, value)}
         />
       ) : field.type === 'textarea' ? (
         <textarea
@@ -153,6 +203,7 @@ function FormField({ field }: { field: IntakeFieldDef }) {
           placeholder={field.placeholder}
           rows={3}
           className={`${baseClass} resize-none`}
+          onBlur={handleBlur}
         />
       ) : (
         <input
@@ -163,8 +214,10 @@ function FormField({ field }: { field: IntakeFieldDef }) {
           placeholder={field.placeholder}
           className={baseClass}
           {...(field.type === 'number' ? { min: 0 } : {})}
+          onBlur={handleBlur}
         />
       )}
+      <FieldError message={error} />
     </div>
   )
 }
@@ -248,7 +301,7 @@ function FileUploadField({ name, label, required, accept, helpText, file, onFile
   )
 }
 
-function renderFieldGrid(fields: IntakeFieldDef[]) {
+function renderFieldGrid(fields: IntakeFieldDef[], errors: Record<string, string | null>, onBlur: (name: string, value: string) => void) {
   const rows: React.ReactNode[] = []
   let i = 0
 
@@ -259,15 +312,15 @@ function renderFieldGrid(fields: IntakeFieldDef[]) {
     if (field.half && next?.half) {
       rows.push(
         <div key={field.name} className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <FormField field={field} />
-          <FormField field={next} />
+          <FormField field={field} error={errors[field.name]} onBlur={onBlur} />
+          <FormField field={next} error={errors[next.name]} onBlur={onBlur} />
         </div>
       )
       i += 2
     } else {
       rows.push(
         <div key={field.name}>
-          <FormField field={field} />
+          <FormField field={field} error={errors[field.name]} onBlur={onBlur} />
         </div>
       )
       i += 1
@@ -288,23 +341,73 @@ export function IntakeForm({ taskId }: { taskId: string }) {
   const [status, setStatus] = useState<'idle' | 'submitting' | 'success' | 'error'>('idle')
   const [errorMsg, setErrorMsg] = useState('')
   const [files, setFiles] = useState<Record<string, File | null>>({})
+  const [errors, setErrors] = useState<Record<string, string | null>>({})
+  const [fileErrors, setFileErrors] = useState<Record<string, string | null>>({})
+
+  const handleFieldBlur = useCallback((name: string, value: string) => {
+    const field = INTAKE_FIELDS.find((f) => f.name === name)
+    if (!field) return
+    const error = validateField(field, value)
+    setErrors((prev) => ({ ...prev, [name]: error }))
+  }, [])
 
   function handleFileChange(name: string, file: File | null) {
     setFiles((prev) => ({ ...prev, [name]: file }))
+    // Clear file error when a file is selected
+    if (file) setFileErrors((prev) => ({ ...prev, [name]: null }))
   }
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
-    setStatus('submitting')
     setErrorMsg('')
 
-    // Build multipart form data with both fields and files
+    // Validate all fields before submitting
     const formEl = e.currentTarget
+    const formData = new FormData(formEl)
+    const newErrors: Record<string, string | null> = {}
+    let hasError = false
+
+    for (const field of INTAKE_FIELDS) {
+      const val = (formData.get(field.name) as string) || ''
+      const error = validateField(field, val)
+      newErrors[field.name] = error
+      if (error) hasError = true
+    }
+
+    // Validate required file uploads
+    const newFileErrors: Record<string, string | null> = {}
+    for (const upload of UPLOAD_FIELDS) {
+      if (upload.required && !files[upload.name]) {
+        newFileErrors[upload.name] = `${upload.label} is required`
+        hasError = true
+      } else {
+        newFileErrors[upload.name] = null
+      }
+    }
+
+    setErrors(newErrors)
+    setFileErrors(newFileErrors)
+
+    if (hasError) {
+      // Scroll to first error
+      const firstErrorField = [...INTAKE_FIELDS.map((f) => f.name), ...UPLOAD_FIELDS.map((u) => u.name)]
+        .find((name) => newErrors[name] || newFileErrors[name])
+      if (firstErrorField) {
+        const el = document.querySelector(`[name="${firstErrorField}"]`) ||
+          document.getElementById(`upload-${firstErrorField}`)
+        el?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      }
+      return
+    }
+
+    setStatus('submitting')
+
+    // Build multipart form data with both fields and files
     const submitData = new FormData()
 
     // Add text fields
     for (const field of INTAKE_FIELDS) {
-      const val = (new FormData(formEl).get(field.name) as string) || ''
+      const val = (formData.get(field.name) as string) || ''
       submitData.append(field.name, val)
     }
 
@@ -365,7 +468,7 @@ export function IntakeForm({ taskId }: { taskId: string }) {
               <p className="text-sm text-[#9a9890] font-[family-name:var(--font-jost)] mt-0.5">{section.description}</p>
             </div>
             <div className="px-6 py-6">
-              {renderFieldGrid(fields)}
+              {renderFieldGrid(fields, errors, handleFieldBlur)}
             </div>
           </div>
         )
@@ -381,12 +484,14 @@ export function IntakeForm({ taskId }: { taskId: string }) {
         </div>
         <div className="px-6 py-6 space-y-5">
           {UPLOAD_FIELDS.map((upload) => (
-            <FileUploadField
-              key={upload.name}
-              {...upload}
-              file={files[upload.name] || null}
-              onFileChange={handleFileChange}
-            />
+            <div key={upload.name} id={`upload-${upload.name}`}>
+              <FileUploadField
+                {...upload}
+                file={files[upload.name] || null}
+                onFileChange={handleFileChange}
+              />
+              <FieldError message={fileErrors[upload.name]} />
+            </div>
           ))}
         </div>
       </div>
