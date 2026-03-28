@@ -130,9 +130,6 @@ export function BEODocument({ data, taskId }: { data: BEOData; taskId: string })
 
         {/* Event Location & Timing */}
         <Section title="Event Location & Timing">
-          <FieldRow>
-            <FullWidthField label="Event Date" value={data.eventDate} />
-          </FieldRow>
           {isSandcastle ? (
             <>
               <FieldRow>
