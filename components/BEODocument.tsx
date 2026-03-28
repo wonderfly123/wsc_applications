@@ -55,6 +55,7 @@ function FullWidthField({ label, value, notes }: { label: string; value: string;
 }
 
 export function BEODocument({ data, taskId }: { data: BEOData; taskId: string }) {
+  const isSandcastle = data.package === 'Sandcastle'
   return (
     <div className="w-[820px] min-h-[1060px] mx-auto bg-white shadow-[0_6px_48px_rgba(0,0,0,0.10)] my-10 print:w-full print:my-0 print:shadow-none">
       {/* Header */}
@@ -89,55 +90,89 @@ export function BEODocument({ data, taskId }: { data: BEOData; taskId: string })
             <Field label="Last Name" value={data.clientLastName} last />
           </FieldRow>
           <FieldRow>
-            <Field label="Company" value={data.companyName} />
+            <Field label="Email" value={data.clientEmail} />
             <Field label="Phone" value={data.clientPhone} last />
           </FieldRow>
           <FieldRow last>
-            <FullWidthField label="Email" value={data.clientEmail} />
+            <FullWidthField label="Company" value={data.companyName} />
           </FieldRow>
         </Section>
 
-        {/* Event Details */}
-        <Section title="Event Details">
+        {/* Event Package Details */}
+        <Section title="Event Package Details">
+          <FieldRow>
+            <FullWidthField label="Package" value={data.package} />
+          </FieldRow>
           <FieldRow>
             <Field label="Event Type" value={data.eventType} />
             <Field label="Headcount" value={data.headcount} last />
           </FieldRow>
           <FieldRow>
-            <Field label="Service Start" value={data.serviceStart} />
-            <Field label="Service End" value={data.serviceEnd} last />
+            <Field label="Garnish" value={data.garnish} />
+            <Field label="Coconut Qty" value={data.coconutQty} last />
           </FieldRow>
-          <FieldRow last>
-            <FullWidthField label="Event Location" value={data.eventLocation} />
-          </FieldRow>
+          {isSandcastle ? (
+            <FieldRow last>
+              <FullWidthField label="Certifications Needed" value={data.certsNeeded} />
+            </FieldRow>
+          ) : (
+            <>
+              <FieldRow>
+                <Field label="Coconuts Opened by Service Time" value={data.readyBy} />
+                <Field label="Setup Provided" value={data.setupProvided} last />
+              </FieldRow>
+              <FieldRow last>
+                <FullWidthField label="Certifications Needed" value={data.certsNeeded} />
+              </FieldRow>
+            </>
+          )}
         </Section>
 
-        {/* Service & Package */}
-        <Section title="Service & Package">
+        {/* Event Location & Timing */}
+        <Section title="Event Location & Timing">
           <FieldRow>
-            <Field label="Package" value={data.package} />
-            <Field label="Garnish" value={data.garnish} last />
+            <FullWidthField label="Event Date" value={data.eventDate} />
           </FieldRow>
-          <FieldRow>
-            <Field label="Coconut Qty" value={data.coconutQty} />
-            <Field label="Amount of Coconuts Opened by Time of Service" value={data.readyBy} last />
-          </FieldRow>
-          <FieldRow>
-            <Field label="Setup Provided by Client" value={data.setupProvided} />
-            <Field label="Certifications Needed" value={data.certsNeeded} last />
-          </FieldRow>
+          {isSandcastle ? (
+            <>
+              <FieldRow>
+                <FullWidthField label="Drop Off Time" value={data.setupTime} />
+              </FieldRow>
+              <FieldRow last>
+                <FullWidthField label="Delivery Location" value={data.loadInLocation} />
+              </FieldRow>
+            </>
+          ) : (
+            <>
+              <FieldRow>
+                <Field label="Set Up Time" value={data.setupTime} />
+                <Field label="Tear Down Time" value={data.teardownTime} last />
+              </FieldRow>
+              <FieldRow>
+                <Field label="Service Start" value={data.serviceStart} />
+                <Field label="Service End" value={data.serviceEnd} last />
+              </FieldRow>
+              <FieldRow>
+                <Field label="Event Location" value={data.eventLocation} />
+                <Field label="Load-in Location" value={data.loadInLocation} last />
+              </FieldRow>
+              <FieldRow last>
+                <FullWidthField label="Delivery Instructions" value={data.deliveryInstructions} />
+              </FieldRow>
+            </>
+          )}
         </Section>
 
-        {/* Logistics */}
-        <Section title="Logistics">
-          <FieldRow last>
-            <Field label="Load-in Location" value={data.loadInLocation} />
-            <Field label="Delivery Instructions" value={data.deliveryInstructions} last />
+        {/* Additional Information */}
+        <Section title="Additional Information">
+          <FieldRow>
+            <FullWidthField label="Insurance Requirements" value={data.insurance} />
           </FieldRow>
-        </Section>
-
-        {/* Notes */}
-        <Section title="Notes">
+          {isSandcastle || (
+            <FieldRow>
+              <FullWidthField label="Delivery Instructions" value={data.deliveryInstructions} />
+            </FieldRow>
+          )}
           <FieldRow last>
             <FullWidthField label="Event Notes" value={data.eventNotes} notes />
           </FieldRow>

@@ -28,10 +28,11 @@ function resolveFieldValue(field: ClickUpCustomField): string {
   // Boolean fields
   if (typeof value === 'boolean') return value ? 'Yes' : 'No'
 
-  // Date fields (ClickUp stores as epoch ms string or number)
+  // Date fields (ClickUp stores as epoch ms string or number) — display in Pacific Time
   const numVal = Number(value)
   if (!isNaN(numVal) && numVal > 1_000_000_000_000) {
     return new Date(numVal).toLocaleString('en-US', {
+      timeZone: 'America/Los_Angeles',
       dateStyle: 'medium',
       timeStyle: 'short',
     })
@@ -45,6 +46,9 @@ export function parseCustomFields(customFields: ClickUpCustomField[]): BEOData {
 
   const result = {} as BEOData
   result.eventName = '\u2014'
+  result.setupTime = '\u2014'
+  result.teardownTime = '\u2014'
+  result.eventDate = '\u2014'
   for (const [key, fieldId] of Object.entries(FIELD_MAP)) {
     const field = fieldById.get(fieldId)
     ;(result as unknown as Record<string, unknown>)[key] = field ? resolveFieldValue(field) : '\u2014'
@@ -226,6 +230,25 @@ export async function fetchTask(taskId: string): Promise<BEOData | null> {
   const task = await res.json()
   const data = parseCustomFields(task.custom_fields ?? [])
   data.eventName = task.name ?? '\u2014'
+
+  // Extract task-level dates as Pacific Time
+  const TZ = 'America/Los_Angeles'
+  const formatDate = (ms: number) => new Date(ms).toLocaleDateString('en-US', { timeZone: TZ, dateStyle: 'medium' })
+  const formatTime = (ms: number) => new Date(ms).toLocaleTimeString('en-US', { timeZone: TZ, hour: 'numeric', minute: '2-digit' })
+
+  if (task.start_date) {
+    const ms = Number(task.start_date)
+    data.eventDate = formatDate(ms)
+    data.setupTime = formatTime(ms)
+  } else {
+    data.eventDate = '\u2014'
+    data.setupTime = '\u2014'
+  }
+  if (task.due_date) {
+    data.teardownTime = formatTime(Number(task.due_date))
+  } else {
+    data.teardownTime = '\u2014'
+  }
 
   // Also check task-level attachments for prefixed uploads
   if (task.attachments && Array.isArray(task.attachments)) {

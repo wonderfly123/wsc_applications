@@ -26,9 +26,16 @@ export interface BEOFields {
   deliveryInstructions: string
   eventNotes: string
   headcount: string
+  insurance: string
 }
 
-export interface BEOData extends BEOFields {
+export interface BEOTaskDates {
+  setupTime: string
+  teardownTime: string
+  eventDate: string
+}
+
+export interface BEOData extends BEOFields, BEOTaskDates {
   eventName: string
   attachments: BEOAttachment[]
 }
@@ -54,6 +61,7 @@ export const FIELD_MAP: Record<keyof BEOFields, string> = {
   deliveryInstructions: 'b4457a6a-5d84-4505-9e9b-6883303331b3',
   eventNotes: 'd4ac6c86-d0d6-48e2-8958-b0ede74e3456',
   headcount: '019ed06a-6a3a-4782-877f-ec4e94b0ac30',
+  insurance: 'c166861e-6340-4ec6-a7c6-0ef7b910ac1e',
 }
 
 export const ATTACHMENT_FIELDS: { id: string; category: BEOAttachment['category'] }[] = [
