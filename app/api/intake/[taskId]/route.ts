@@ -54,13 +54,16 @@ export async function POST(
           break
         }
         case 'location': {
-          const lat = formData.get(`${field.name}_lat`) as string | null
-          const lng = formData.get(`${field.name}_lng`) as string | null
-          console.log(`Location ${field.name}: address="${rawValue}" lat="${lat}" lng="${lng}"`)
-          if (lat && lng) {
-            value = { formatted_address: rawValue, location: { lat: parseFloat(lat), lng: parseFloat(lng) } }
+          const key = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY
+          if (!key) { continue }
+          const geoRes = await fetch(
+            `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(rawValue)}&key=${key}`
+          )
+          const geoData = await geoRes.json()
+          const loc = geoData.results?.[0]?.geometry?.location
+          if (loc) {
+            value = { formatted_address: rawValue, location: { lat: loc.lat, lng: loc.lng } }
           } else {
-            // No lat/lng from client — skip, ClickUp requires coordinates
             continue
           }
           break

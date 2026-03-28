@@ -84,9 +84,6 @@ function PlacesAutocomplete({ name, required, placeholder, baseClass }: {
   baseClass: string
 }) {
   const inputRef = useRef<HTMLInputElement>(null)
-  const latRef = useRef<HTMLInputElement>(null)
-  const lngRef = useRef<HTMLInputElement>(null)
-  const hiddenRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     const input = inputRef.current
@@ -95,35 +92,26 @@ function PlacesAutocomplete({ name, required, placeholder, baseClass }: {
     const autocomplete = new window.google.maps.places.Autocomplete(input, {
       types: ['address'],
       componentRestrictions: { country: 'us' },
-      fields: ['formatted_address', 'geometry'],
     })
 
     autocomplete.addListener('place_changed', () => {
       const place = autocomplete.getPlace()
-      if (place.formatted_address && hiddenRef.current) {
-        hiddenRef.current.value = place.formatted_address
-      }
-      if (place.geometry?.location) {
-        if (latRef.current) latRef.current.value = String(place.geometry.location.lat())
-        if (lngRef.current) lngRef.current.value = String(place.geometry.location.lng())
+      if (place.formatted_address && inputRef.current) {
+        inputRef.current.value = place.formatted_address
       }
     })
   }, [])
 
   return (
-    <>
-      <input
-        ref={inputRef}
-        type="text"
-        required={required}
-        placeholder={placeholder}
-        className={baseClass}
-        autoComplete="off"
-      />
-      <input type="hidden" ref={hiddenRef} name={name} />
-      <input type="hidden" ref={latRef} name={`${name}_lat`} />
-      <input type="hidden" ref={lngRef} name={`${name}_lng`} />
-    </>
+    <input
+      ref={inputRef}
+      name={name}
+      type="text"
+      required={required}
+      placeholder={placeholder}
+      className={baseClass}
+      autoComplete="off"
+    />
   )
 }
 
