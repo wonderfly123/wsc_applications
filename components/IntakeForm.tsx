@@ -23,6 +23,28 @@ function validateField(field: IntakeFieldDef, value: string): string | null {
   return null
 }
 
+function validateDatePairs(values: Record<string, string>): Record<string, string | null> {
+  const errs: Record<string, string | null> = {}
+  const eventStart = values.eventStart ? new Date(values.eventStart) : null
+  const eventEnd = values.eventEnd ? new Date(values.eventEnd) : null
+  const serviceStart = values.serviceStart ? new Date(values.serviceStart) : null
+  const serviceEnd = values.serviceEnd ? new Date(values.serviceEnd) : null
+
+  if (eventStart && eventEnd && eventEnd <= eventStart) {
+    errs.eventEnd = 'Event end must be after event start'
+  }
+  if (serviceStart && serviceEnd && serviceEnd <= serviceStart) {
+    errs.serviceEnd = 'Service end must be after service start'
+  }
+  if (eventStart && serviceStart && serviceStart < eventStart) {
+    errs.serviceStart = 'Service start cannot be before event start'
+  }
+  if (eventEnd && serviceEnd && serviceEnd > eventEnd) {
+    errs.serviceEnd = errs.serviceEnd || 'Service end cannot be after event end'
+  }
+  return errs
+}
+
 function FieldError({ message }: { message?: string | null }) {
   if (!message) return null
   return (
@@ -113,14 +135,16 @@ function CustomSelect({ name, options, required, placeholder = 'Select...', erro
   )
 }
 
-function PlacesAutocomplete({ name, required, placeholder, baseClass, onBlur }: {
+function PlacesAutocomplete({ name, required, placeholder, baseClass, onBlur, onPlaceSelect }: {
   name: string
   required: boolean
   placeholder?: string
   baseClass: string
   onBlur?: (value: string) => void
+  onPlaceSelect?: (name: string, valid: boolean) => void
 }) {
   const inputRef = useRef<HTMLInputElement>(null)
+  const validAddressRef = useRef('')
 
   useEffect(() => {
     const input = inputRef.current
@@ -135,10 +159,21 @@ function PlacesAutocomplete({ name, required, placeholder, baseClass, onBlur }: 
       const place = autocomplete.getPlace()
       if (place.formatted_address && inputRef.current) {
         inputRef.current.value = place.formatted_address
+        validAddressRef.current = place.formatted_address
+        onPlaceSelect?.(name, true)
         onBlur?.(place.formatted_address)
       }
     })
-  }, [onBlur])
+  }, [onBlur, name, onPlaceSelect])
+
+  function handleBlur() {
+    const current = inputRef.current?.value || ''
+    if (current !== validAddressRef.current) {
+      validAddressRef.current = ''
+      onPlaceSelect?.(name, false)
+    }
+    onBlur?.(current)
+  }
 
   return (
     <input
@@ -149,12 +184,12 @@ function PlacesAutocomplete({ name, required, placeholder, baseClass, onBlur }: 
       placeholder={placeholder}
       className={baseClass}
       autoComplete="off"
-      onBlur={(e) => onBlur?.(e.target.value)}
+      onBlur={handleBlur}
     />
   )
 }
 
-function FormField({ field, error, onBlur }: { field: IntakeFieldDef; error?: string | null; onBlur?: (name: string, value: string) => void }) {
+function FormField({ field, error, onBlur, onPlaceSelect }: { field: IntakeFieldDef; error?: string | null; onBlur?: (name: string, value: string) => void; onPlaceSelect?: (name: string, valid: boolean) => void }) {
   const hasError = !!error
   const normalClass =
     'w-full max-w-full rounded-lg px-4 py-3 border border-[#d8d5cc] bg-white text-[#1e1d1a] font-[family-name:var(--font-jost)] text-[15px] placeholder:text-[#bbb8b0] focus:outline-none focus:border-[#8b6914] focus:ring-2 focus:ring-[#8b6914]/20 transition-all box-border'
@@ -194,6 +229,7 @@ function FormField({ field, error, onBlur }: { field: IntakeFieldDef; error?: st
           placeholder={field.placeholder}
           baseClass={baseClass}
           onBlur={(value) => onBlur?.(field.name, value)}
+          onPlaceSelect={onPlaceSelect}
         />
       ) : field.type === 'textarea' ? (
         <textarea
@@ -301,7 +337,7 @@ function FileUploadField({ name, label, required, accept, helpText, file, onFile
   )
 }
 
-function renderFieldGrid(fields: IntakeFieldDef[], errors: Record<string, string | null>, onBlur: (name: string, value: string) => void) {
+function renderFieldGrid(fields: IntakeFieldDef[], errors: Record<string, string | null>, onBlur: (name: string, value: string) => void, onPlaceSelect: (name: string, valid: boolean) => void) {
   const rows: React.ReactNode[] = []
   let i = 0
 
@@ -312,15 +348,15 @@ function renderFieldGrid(fields: IntakeFieldDef[], errors: Record<string, string
     if (field.half && next?.half) {
       rows.push(
         <div key={field.name} className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <FormField field={field} error={errors[field.name]} onBlur={onBlur} />
-          <FormField field={next} error={errors[next.name]} onBlur={onBlur} />
+          <FormField field={field} error={errors[field.name]} onBlur={onBlur} onPlaceSelect={onPlaceSelect} />
+          <FormField field={next} error={errors[next.name]} onBlur={onBlur} onPlaceSelect={onPlaceSelect} />
         </div>
       )
       i += 2
     } else {
       rows.push(
         <div key={field.name}>
-          <FormField field={field} error={errors[field.name]} onBlur={onBlur} />
+          <FormField field={field} error={errors[field.name]} onBlur={onBlur} onPlaceSelect={onPlaceSelect} />
         </div>
       )
       i += 1
@@ -343,12 +379,55 @@ export function IntakeForm({ taskId }: { taskId: string }) {
   const [files, setFiles] = useState<Record<string, File | null>>({})
   const [errors, setErrors] = useState<Record<string, string | null>>({})
   const [fileErrors, setFileErrors] = useState<Record<string, string | null>>({})
+  const validPlaces = useRef<Record<string, boolean>>({})
+
+  const handlePlaceSelect = useCallback((name: string, valid: boolean) => {
+    validPlaces.current[name] = valid
+    if (valid) {
+      setErrors((prev) => ({ ...prev, [name]: null }))
+    }
+  }, [])
 
   const handleFieldBlur = useCallback((name: string, value: string) => {
     const field = INTAKE_FIELDS.find((f) => f.name === name)
     if (!field) return
     const error = validateField(field, value)
-    setErrors((prev) => ({ ...prev, [name]: error }))
+    setErrors((prev) => {
+      const updated = { ...prev, [name]: error }
+
+      // For location fields, validate that a Google place was selected
+      if (!error && field.clickupFieldType === 'location' && value.trim()) {
+        if (!validPlaces.current[name]) {
+          updated[name] = 'Please select an address from the dropdown'
+        }
+      }
+
+      // For date fields, run cross-field date pair validation
+      if (field.type === 'datetime-local') {
+        const form = document.querySelector('form')
+        if (form) {
+          const formData = new FormData(form)
+          const values: Record<string, string> = {}
+          for (const f of INTAKE_FIELDS) {
+            if (f.type === 'datetime-local') {
+              values[f.name] = f.name === name ? value : (formData.get(f.name) as string) || ''
+            }
+          }
+          const dateErrors = validateDatePairs(values)
+          for (const [key, msg] of Object.entries(dateErrors)) {
+            updated[key] = msg
+          }
+          // Clear date pair errors that are no longer present
+          for (const f of INTAKE_FIELDS) {
+            if (f.type === 'datetime-local' && !dateErrors[f.name] && !validateField(f, f.name === name ? value : (formData.get(f.name) as string) || '')) {
+              updated[f.name] = null
+            }
+          }
+        }
+      }
+
+      return updated
+    })
   }, [])
 
   function handleFileChange(name: string, file: File | null) {
@@ -367,11 +446,31 @@ export function IntakeForm({ taskId }: { taskId: string }) {
     const newErrors: Record<string, string | null> = {}
     let hasError = false
 
+    const dateValues: Record<string, string> = {}
     for (const field of INTAKE_FIELDS) {
       const val = (formData.get(field.name) as string) || ''
       const error = validateField(field, val)
       newErrors[field.name] = error
       if (error) hasError = true
+
+      if (field.type === 'datetime-local') dateValues[field.name] = val
+
+      // Validate location fields have a Google-selected address
+      if (field.clickupFieldType === 'location' && val.trim() && !error) {
+        if (!validPlaces.current[field.name]) {
+          newErrors[field.name] = 'Please select an address from the dropdown'
+          hasError = true
+        }
+      }
+    }
+
+    // Validate date pairs (end after start, service within event)
+    const dateErrors = validateDatePairs(dateValues)
+    for (const [key, msg] of Object.entries(dateErrors)) {
+      if (msg) {
+        newErrors[key] = msg
+        hasError = true
+      }
     }
 
     // Validate required file uploads
@@ -468,7 +567,7 @@ export function IntakeForm({ taskId }: { taskId: string }) {
               <p className="text-sm text-[#9a9890] font-[family-name:var(--font-jost)] mt-0.5">{section.description}</p>
             </div>
             <div className="px-6 py-6">
-              {renderFieldGrid(fields, errors, handleFieldBlur)}
+              {renderFieldGrid(fields, errors, handleFieldBlur, handlePlaceSelect)}
             </div>
           </div>
         )
