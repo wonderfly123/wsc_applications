@@ -402,7 +402,11 @@ export function IntakeForm({ taskId, initialValues = {} }: { taskId: string; ini
   }, [])
 
   const handleFieldBlur = useCallback((name: string, value: string) => {
-    if (name === 'package') setSelectedPackage(value)
+    if (name === 'package') {
+      setSelectedPackage(value)
+      setErrors({})
+      return
+    }
     const field = INTAKE_FIELDS.find((f) => f.name === name)
     if (!field) return
     const error = validateField(field, value)
