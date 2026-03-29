@@ -109,20 +109,11 @@ export function BEODocument({ data, taskId }: { data: BEOData; taskId: string })
             <Field label="Garnish" value={data.garnish} />
             <Field label="Coconut Qty" value={data.coconutQty} last />
           </FieldRow>
-          {isSandcastle ? (
+          {isSandcastle ? null : (
             <FieldRow last>
-              <FullWidthField label="Certifications Needed" value={data.certsNeeded} />
+              <Field label="Coconuts Opened by Service Time" value={data.readyBy} />
+              <Field label="Setup Provided" value={data.setupProvided} last />
             </FieldRow>
-          ) : (
-            <>
-              <FieldRow>
-                <Field label="Coconuts Opened by Service Time" value={data.readyBy} />
-                <Field label="Setup Provided" value={data.setupProvided} last />
-              </FieldRow>
-              <FieldRow last>
-                <FullWidthField label="Certifications Needed" value={data.certsNeeded} />
-              </FieldRow>
-            </>
           )}
         </Section>
 
@@ -163,6 +154,9 @@ export function BEODocument({ data, taskId }: { data: BEOData; taskId: string })
         <Section title="Additional Information">
           <FieldRow>
             <FullWidthField label="Insurance Requirements" value={data.insurance} />
+          </FieldRow>
+          <FieldRow>
+            <FullWidthField label="Certifications Needed" value={data.certsNeeded} />
           </FieldRow>
           <FieldRow last>
             <FullWidthField label="Event Notes" value={data.eventNotes} notes />
