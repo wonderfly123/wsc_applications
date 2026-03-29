@@ -5,7 +5,7 @@ import { INTAKE_FIELDS, UPLOAD_FIELDS, IntakeFieldDef } from '@/lib/intake-field
 
 function validateField(field: IntakeFieldDef, value: string): string | null {
   const trimmed = value.trim()
-  if (field.required && !trimmed) return `${field.label} is required`
+  if (field.required && !trimmed) return 'This field is required'
 
   if (!trimmed) return null
 
@@ -18,7 +18,7 @@ function validateField(field: IntakeFieldDef, value: string): string | null {
   if (field.type === 'number') {
     const num = Number(trimmed)
     if (isNaN(num) || num < 0) return 'Please enter a valid number'
-    if (num === 0 && field.required) return `${field.label} must be greater than 0`
+    if (num === 0 && field.required) return 'Must be greater than 0'
   }
   return null
 }
