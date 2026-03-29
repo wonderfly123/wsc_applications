@@ -83,18 +83,16 @@ export function BEODocument({ data, taskId }: { data: BEOData; taskId: string })
         {/* Client Information */}
         <Section title="Client Information">
           <FieldRow>
-            <FullWidthField label="Event Name" value={data.eventName} />
+            <Field label="Event Name" value={data.eventName} />
+            <Field label="Company" value={data.companyName} last />
           </FieldRow>
           <FieldRow>
             <Field label="First Name" value={data.clientFirstName} />
             <Field label="Last Name" value={data.clientLastName} last />
           </FieldRow>
-          <FieldRow>
+          <FieldRow last>
             <Field label="Email" value={data.clientEmail} />
             <Field label="Phone" value={data.clientPhone} last />
-          </FieldRow>
-          <FieldRow last>
-            <FullWidthField label="Company" value={data.companyName} />
           </FieldRow>
         </Section>
 
@@ -133,7 +131,8 @@ export function BEODocument({ data, taskId }: { data: BEOData; taskId: string })
           {isSandcastle ? (
             <>
               <FieldRow>
-                <FullWidthField label="Drop Off Time" value={data.setupTime} />
+                <Field label="Delivery Window Start" value={data.setupTime} />
+                <Field label="Delivery Window End" value={data.teardownTime} last />
               </FieldRow>
               <FieldRow last>
                 <FullWidthField label="Delivery Location" value={data.loadInLocation} />
