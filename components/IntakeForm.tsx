@@ -23,15 +23,18 @@ function validateField(field: IntakeFieldDef, value: string): string | null {
   return null
 }
 
-function validateDateTimePairs(values: Record<string, string>): Record<string, string | null> {
+function validateDateTimePairs(values: Record<string, string>, selectedPackage: string): Record<string, string | null> {
   const errs: Record<string, string | null> = {}
+  const isSandcastle = selectedPackage === 'Sandcastle'
   const setup = values.setupTime ? new Date(values.setupTime) : null
   const teardown = values.teardownTime ? new Date(values.teardownTime) : null
   const serviceStart = values.serviceStart ? new Date(values.serviceStart) : null
   const serviceEnd = values.serviceEnd ? new Date(values.serviceEnd) : null
 
   if (setup && teardown && teardown <= setup) {
-    errs.teardownTime = 'Tear down must be after set up'
+    errs.teardownTime = isSandcastle
+      ? 'Delivery window end must be after start'
+      : 'Tear down must be after set up'
   }
   if (serviceStart && serviceEnd && serviceEnd <= serviceStart) {
     errs.serviceEnd = 'Service end must be after service start'
@@ -94,7 +97,7 @@ function CustomSelect({ name, options, required, placeholder = 'Select...', erro
       <button
         type="button"
         onClick={handleToggle}
-        className={`w-full rounded-lg px-4 py-3 border bg-white text-left font-[family-name:var(--font-jost)] text-[15px] transition-all flex items-center justify-between ${
+        className={`w-full rounded-sm px-4 py-3 border bg-white text-left font-[family-name:var(--font-jost)] text-[15px] transition-all flex items-center justify-between ${
           error
             ? 'border-[#c44b2b] ring-2 ring-[#c44b2b]/20'
             : open
@@ -113,7 +116,7 @@ function CustomSelect({ name, options, required, placeholder = 'Select...', erro
         </svg>
       </button>
       {open && (
-        <div className={`absolute z-50 w-full bg-white border border-[#e0ddd4] rounded-lg shadow-lg overflow-hidden ${
+        <div className={`absolute z-50 w-full bg-white border border-[#e0ddd4] rounded-sm shadow-lg overflow-hidden ${
           openUp ? 'bottom-full mb-1' : 'top-full mt-1'
         }`}>
           {options.map((opt) => (
@@ -195,9 +198,9 @@ function PlacesAutocomplete({ name, required, placeholder, baseClass, onBlur, on
 function FormField({ field, error, onBlur, onPlaceSelect, labelOverride, defaultValue }: { field: IntakeFieldDef; error?: string | null; onBlur?: (name: string, value: string) => void; onPlaceSelect?: (name: string, valid: boolean) => void; labelOverride?: string; defaultValue?: string }) {
   const hasError = !!error
   const normalClass =
-    'w-full max-w-full rounded-lg px-4 py-3 border border-[#d8d5cc] bg-white text-[#1e1d1a] font-[family-name:var(--font-jost)] text-[15px] placeholder:text-[#bbb8b0] focus:outline-none focus:border-[#8b6914] focus:ring-2 focus:ring-[#8b6914]/20 transition-all box-border'
+    'w-full max-w-full rounded-sm px-4 py-3 border border-[#d8d5cc] bg-white text-[#1e1d1a] font-[family-name:var(--font-jost)] text-[15px] placeholder:text-[#bbb8b0] focus:outline-none focus:border-[#8b6914] focus:ring-2 focus:ring-[#8b6914]/20 transition-all box-border'
   const errorClass =
-    'w-full max-w-full rounded-lg px-4 py-3 border border-[#c44b2b] bg-white text-[#1e1d1a] font-[family-name:var(--font-jost)] text-[15px] placeholder:text-[#bbb8b0] focus:outline-none focus:border-[#c44b2b] focus:ring-2 focus:ring-[#c44b2b]/20 transition-all box-border'
+    'w-full max-w-full rounded-sm px-4 py-3 border border-[#c44b2b] bg-white text-[#1e1d1a] font-[family-name:var(--font-jost)] text-[15px] placeholder:text-[#bbb8b0] focus:outline-none focus:border-[#c44b2b] focus:ring-2 focus:ring-[#c44b2b]/20 transition-all box-border'
   const baseClass = hasError ? errorClass : normalClass
 
   function handleBlur(e: React.FocusEvent<HTMLInputElement | HTMLTextAreaElement>) {
@@ -298,7 +301,7 @@ function FileUploadField({ name, label, required, accept, helpText, file, onFile
         onDragOver={(e) => { e.preventDefault(); setDragOver(true) }}
         onDragLeave={() => setDragOver(false)}
         onDrop={handleDrop}
-        className={`relative rounded-lg border-2 border-dashed px-6 py-8 text-center cursor-pointer transition-all ${
+        className={`relative rounded-sm border-2 border-dashed px-6 py-8 text-center cursor-pointer transition-all ${
           dragOver
             ? 'border-[#8b6914] bg-[#8b6914]/5'
             : file
@@ -424,7 +427,7 @@ export function IntakeForm({ taskId, initialValues = {} }: { taskId: string; ini
               values[f.name] = f.name === name ? value : (formData.get(f.name) as string) || ''
             }
           }
-          const timeErrors = validateDateTimePairs(values)
+          const timeErrors = validateDateTimePairs(values, selectedPackage)
           for (const [key, msg] of Object.entries(timeErrors)) {
             if (msg) updated[key] = msg
           }
@@ -480,7 +483,7 @@ export function IntakeForm({ taskId, initialValues = {} }: { taskId: string; ini
     }
 
     // Validate time pairs (tear down after set up, service within set up/tear down)
-    const timeErrors = validateDateTimePairs(timeValues)
+    const timeErrors = validateDateTimePairs(timeValues, currentPackage)
     for (const [key, msg] of Object.entries(timeErrors)) {
       if (msg) {
         newErrors[key] = msg
@@ -574,7 +577,7 @@ export function IntakeForm({ taskId, initialValues = {} }: { taskId: string; ini
       {SECTIONS.map((section) => {
         const fields = INTAKE_FIELDS.filter((f) => f.section === section.key && !(f.hideWhenPackage && f.hideWhenPackage.includes(selectedPackage)))
         return (
-          <div key={section.key} className="bg-white rounded-xl border border-[#e0ddd4]">
+          <div key={section.key} className="bg-white rounded-sm border border-[#e0ddd4]">
             <div className="px-6 pt-6 pb-4 border-b border-[#e8e5dd]">
               <h2 className="font-[family-name:var(--font-cormorant)] text-2xl font-semibold text-[#1e1d1a]">
                 {section.title}
@@ -589,7 +592,7 @@ export function IntakeForm({ taskId, initialValues = {} }: { taskId: string; ini
       })}
 
       {/* File Uploads */}
-      <div className="bg-white rounded-xl border border-[#e0ddd4]">
+      <div className="bg-white rounded-sm border border-[#e0ddd4]">
         <div className="px-6 pt-6 pb-4 border-b border-[#e8e5dd]">
           <h2 className="font-[family-name:var(--font-cormorant)] text-2xl font-semibold text-[#1e1d1a]">
             File Uploads
@@ -611,7 +614,7 @@ export function IntakeForm({ taskId, initialValues = {} }: { taskId: string; ini
       </div>
 
       {status === 'error' && (
-        <div className="p-4 bg-red-50 border border-red-200 text-red-700 text-sm font-[family-name:var(--font-jost)] rounded-lg">
+        <div className="p-4 bg-red-50 border border-red-200 text-red-700 text-sm font-[family-name:var(--font-jost)] rounded-sm">
           {errorMsg}
         </div>
       )}
@@ -619,7 +622,7 @@ export function IntakeForm({ taskId, initialValues = {} }: { taskId: string; ini
       <button
         type="submit"
         disabled={status === 'submitting'}
-        className="w-full py-4 bg-[#1e1d1a] text-[#f0ede4] font-[family-name:var(--font-jost)] text-[15px] font-medium tracking-wider uppercase rounded-lg hover:bg-[#333028] disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm"
+        className="w-full py-4 bg-[#1e1d1a] text-[#f0ede4] font-[family-name:var(--font-jost)] text-[15px] font-medium tracking-wider uppercase rounded-sm hover:bg-[#333028] disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm"
       >
         {status === 'submitting' ? 'Submitting...' : 'Submit Intake Form'}
       </button>

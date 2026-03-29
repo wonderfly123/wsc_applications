@@ -43,7 +43,7 @@ export default async function IntakePage({
 
       {/* Bookmark notice */}
       <div className="max-w-2xl mx-auto px-6 pt-8 pb-2">
-        <div className="bg-white border border-[#e0ddd4] rounded-xl px-5 py-4 flex items-start gap-3">
+        <div className="bg-white border border-[#e0ddd4] rounded-sm px-5 py-4 flex items-start gap-3">
           <svg className="w-5 h-5 text-[#8b6914] shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
           </svg>
