@@ -61,9 +61,10 @@ export async function sendIntakeEmail(params: {
     html: `
       <div style="font-family: Arial, sans-serif; max-width: 600px; color: #333; font-size: 14px; line-height: 1.6;">
         <p>Hi ${clientName},</p>
-        <p>We're excited to be part of your event! To make sure everything goes smoothly, please fill out our quick event details form.</p>
+        <p>Thank you so much for choosing Windansea Coconuts! We can't wait to make your event special.</p>
+        <p>To get started, please fill out our quick event details form so we can make sure everything is perfect for your big day.</p>
         <p><a href="${intakeUrl}" style="color: #1a73e8;">Fill out your event details here</a></p>
-        <p>This is your unique form link — please bookmark it if you plan to fill it out later.</p>
+        <p>This link is unique to your event. If you ever need to update any details, just come back to this form. It will have your information ready to edit anytime.</p>
         <p>Warmly,<br/>🥥 Windansea Coconuts</p>
       </div>
     `,
