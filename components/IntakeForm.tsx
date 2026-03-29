@@ -23,27 +23,24 @@ function validateField(field: IntakeFieldDef, value: string): string | null {
   return null
 }
 
-function validateDateTimePairs(values: Record<string, string>, selectedPackage: string): Record<string, string | null> {
+function validateDateTimePairs(values: Record<string, string>): Record<string, string | null> {
   const errs: Record<string, string | null> = {}
-  const isSandcastle = selectedPackage === 'Sandcastle'
   const setup = values.setupTime ? new Date(values.setupTime) : null
   const teardown = values.teardownTime ? new Date(values.teardownTime) : null
   const serviceStart = values.serviceStart ? new Date(values.serviceStart) : null
   const serviceEnd = values.serviceEnd ? new Date(values.serviceEnd) : null
 
   if (setup && teardown && teardown <= setup) {
-    errs.teardownTime = isSandcastle
-      ? 'Delivery window end must be after start'
-      : 'Tear down must be after set up'
+    errs.teardownTime = 'End time must be after start time'
   }
   if (serviceStart && serviceEnd && serviceEnd <= serviceStart) {
-    errs.serviceEnd = 'Service end must be after service start'
+    errs.serviceEnd = 'End time must be after start time'
   }
   if (setup && serviceStart && serviceStart < setup) {
-    errs.serviceStart = 'Service start cannot be before set up time'
+    errs.serviceStart = 'Must be after start time'
   }
   if (teardown && serviceEnd && serviceEnd > teardown) {
-    errs.serviceEnd = errs.serviceEnd || 'Service end cannot be after tear down time'
+    errs.serviceEnd = errs.serviceEnd || 'Must be before end time'
   }
   return errs
 }
@@ -431,7 +428,7 @@ export function IntakeForm({ taskId, initialValues = {} }: { taskId: string; ini
               values[f.name] = f.name === name ? value : (formData.get(f.name) as string) || ''
             }
           }
-          const timeErrors = validateDateTimePairs(values, selectedPackage)
+          const timeErrors = validateDateTimePairs(values)
           for (const [key, msg] of Object.entries(timeErrors)) {
             if (msg) updated[key] = msg
           }
@@ -487,7 +484,7 @@ export function IntakeForm({ taskId, initialValues = {} }: { taskId: string; ini
     }
 
     // Validate time pairs (tear down after set up, service within set up/tear down)
-    const timeErrors = validateDateTimePairs(timeValues, currentPackage)
+    const timeErrors = validateDateTimePairs(timeValues)
     for (const [key, msg] of Object.entries(timeErrors)) {
       if (msg) {
         newErrors[key] = msg
