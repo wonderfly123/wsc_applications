@@ -25,8 +25,10 @@ export async function POST(req: NextRequest) {
     // Payload from Pipedrive automation (flat key-value pairs)
     const dealTitle = body.deal_title || 'Untitled Event'
     const contactName = body.contact_name || ''
-    const contactEmail = body.contact_email || ''
-    const contactPhone = body.contact_phone || ''
+    const contactEmail = (body.contact_email || '').replace(/^mailto:/i, '')
+    const rawPhone = (body.contact_phone || '').replace(/\D/g, '')
+    // ClickUp phone fields require E.164 format — prepend +1 for US numbers
+    const contactPhone = rawPhone ? (rawPhone.length === 10 ? `+1${rawPhone}` : `+${rawPhone}`) : ''
     const pipedriveDealId = body.pipedrive_deal_id || ''
     const eventDate = body.event_date || ''
     const coconutQty = body.coconut_qty || ''
@@ -52,8 +54,8 @@ export async function POST(req: NextRequest) {
       { id: CLICKUP_FIELDS.pipedriveDealTitle, value: dealTitle },
       { id: CLICKUP_FIELDS.intakeFormComplete, value: 1 }, // "No" on creation
       { id: CLICKUP_FIELDS.clientEmail, value: contactEmail },
-      { id: CLICKUP_FIELDS.clientPhone, value: contactPhone },
     ]
+    if (contactPhone) customFields.push({ id: CLICKUP_FIELDS.clientPhone, value: contactPhone })
     if (firstName) customFields.push({ id: CLICKUP_FIELDS.clientFirstName, value: firstName })
     if (lastName) customFields.push({ id: CLICKUP_FIELDS.clientLastName, value: lastName })
     if (coconutQty && !isNaN(Number(coconutQty))) customFields.push({ id: CLICKUP_FIELDS.coconutQty, value: Number(coconutQty) })
