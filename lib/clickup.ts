@@ -101,7 +101,9 @@ export async function createTask(
   })
 
   if (!res.ok) {
-    throw new Error(`ClickUp createTask failed: ${res.status}`)
+    const errBody = await res.text()
+    console.error('ClickUp createTask error body:', errBody)
+    throw new Error(`ClickUp createTask failed: ${res.status} — ${errBody}`)
   }
 
   const task = await res.json()

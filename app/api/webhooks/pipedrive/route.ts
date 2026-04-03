@@ -56,7 +56,7 @@ export async function POST(req: NextRequest) {
     ]
     if (firstName) customFields.push({ id: CLICKUP_FIELDS.clientFirstName, value: firstName })
     if (lastName) customFields.push({ id: CLICKUP_FIELDS.clientLastName, value: lastName })
-    if (coconutQty) customFields.push({ id: CLICKUP_FIELDS.coconutQty, value: Number(coconutQty) })
+    if (coconutQty && !isNaN(Number(coconutQty))) customFields.push({ id: CLICKUP_FIELDS.coconutQty, value: Number(coconutQty) })
 
     // Parse event date for task start date
     // Pipedrive sends date-only ("2026-03-28"). Use noon UTC so the date
