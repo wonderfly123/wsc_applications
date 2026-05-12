@@ -251,7 +251,7 @@ function HelpImagesPopover({ images }: { images: NonNullable<IntakeFieldDef['hel
         ?
       </button>
       {open && (
-        <div className="absolute z-50 left-0 sm:left-auto sm:right-0 mt-2 w-[min(92vw,420px)] bg-white border border-[#e0ddd4] rounded-sm shadow-xl p-3">
+        <div className="absolute z-50 left-0 top-full mt-2 w-[min(92vw,420px)] bg-white border border-[#e0ddd4] rounded-sm shadow-xl p-3">
           <div className="flex justify-between items-center mb-2">
             <span className="text-[12px] uppercase tracking-wider text-[#878774] font-[family-name:var(--font-jost)]">Reference</span>
             <button type="button" onClick={() => setOpen(false)} aria-label="Close" className="text-[#9a9890] hover:text-[#1e1d1a]">
