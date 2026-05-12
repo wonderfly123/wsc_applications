@@ -6,7 +6,8 @@ describe('FIELD_MAP', () => {
     const beoKeys: (keyof BEOData)[] = [
       'clientFirstName', 'clientLastName', 'companyName', 'clientEmail',
       'clientPhone', 'eventType', 'serviceStart', 'serviceEnd',
-      'eventLocation', 'package', 'coconutQty', 'readyBy', 'garnish',
+      'eventLocation', 'package', 'coconutQty', 'readyBy',
+      'preOpenedQty', 'preOpenedStyle', 'preOpenedWaterSide', 'garnish',
       'setupProvided', 'stampStatus', 'certsNeeded', 'loadInLocation',
       'deliveryInstructions', 'eventNotes',
     ]

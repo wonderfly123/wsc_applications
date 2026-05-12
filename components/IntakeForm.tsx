@@ -23,6 +23,33 @@ function validateField(field: IntakeFieldDef, value: string): string | null {
   return null
 }
 
+function evaluateShowWhen(field: IntakeFieldDef, values: Record<string, string>): boolean {
+  if (!field.showWhen) return true
+  const raw = values[field.showWhen.field] ?? ''
+  const { op, value } = field.showWhen
+  if (typeof value === 'number') {
+    const num = Number(raw)
+    if (isNaN(num)) return false
+    if (op === '>') return num > value
+    if (op === '>=') return num >= value
+    if (op === '==') return num === value
+  } else {
+    if (op === '==') return raw === value
+  }
+  return false
+}
+
+function validateCoconutMath(values: Record<string, string>): Record<string, string | null> {
+  const errs: Record<string, string | null> = {}
+  const total = Number(values.coconutQty || 0)
+  const preOpened = Number(values.preOpenedQty || 0)
+  const readyBy = Number(values.readyBy || 0)
+  if (!isNaN(total) && total > 0 && (preOpened + readyBy) > total) {
+    errs.preOpenedQty = `Pre-opened (${preOpened}) + ready at service (${readyBy}) exceeds total coconuts (${total})`
+  }
+  return errs
+}
+
 function validateDateTimePairs(values: Record<string, string>): Record<string, string | null> {
   const errs: Record<string, string | null> = {}
   const setup = values.setupTime ? new Date(values.setupTime) : null
@@ -389,6 +416,7 @@ export function IntakeForm({ taskId, initialValues = {} }: { taskId: string; ini
   const [errors, setErrors] = useState<Record<string, string | null>>({})
   const [fileErrors, setFileErrors] = useState<Record<string, string | null>>({})
   const [selectedPackage, setSelectedPackage] = useState(initialValues.package || '')
+  const [liveValues, setLiveValues] = useState<Record<string, string>>(initialValues)
   const validPlaces = useRef<Record<string, boolean>>({})
 
   const handlePlaceSelect = useCallback((name: string, valid: boolean) => {
@@ -399,6 +427,7 @@ export function IntakeForm({ taskId, initialValues = {} }: { taskId: string; ini
   }, [])
 
   const handleFieldBlur = useCallback((name: string, value: string) => {
+    setLiveValues((prev) => ({ ...prev, [name]: value }))
     if (name === 'package') {
       setSelectedPackage(value)
       setErrors({})
@@ -409,6 +438,21 @@ export function IntakeForm({ taskId, initialValues = {} }: { taskId: string; ini
     const error = validateField(field, value)
     setErrors((prev) => {
       const updated = { ...prev, [name]: error }
+
+      // Re-run coconut math when any of the three inputs change
+      if (name === 'coconutQty' || name === 'preOpenedQty' || name === 'readyBy') {
+        const form = document.querySelector('form')
+        const values: Record<string, string> = {}
+        if (form) {
+          const fd = new FormData(form)
+          values.coconutQty = (fd.get('coconutQty') as string) || ''
+          values.preOpenedQty = (fd.get('preOpenedQty') as string) || ''
+          values.readyBy = (fd.get('readyBy') as string) || ''
+        }
+        values[name] = value
+        const mathErrs = validateCoconutMath(values)
+        updated.preOpenedQty = mathErrs.preOpenedQty || (name === 'preOpenedQty' ? error : updated.preOpenedQty || null)
+      }
 
       // For location fields, validate that a Google place was selected
       if (!error && field.clickupFieldType === 'location' && value.trim()) {
@@ -462,13 +506,23 @@ export function IntakeForm({ taskId, initialValues = {} }: { taskId: string; ini
     let hasError = false
 
     const currentPackage = (formData.get('package') as string) || ''
+    const allValues: Record<string, string> = {}
+    for (const f of INTAKE_FIELDS) {
+      allValues[f.name] = (formData.get(f.name) as string) || ''
+    }
     const timeValues: Record<string, string> = {}
     for (const field of INTAKE_FIELDS) {
       // Skip fields hidden by package selection
       if (field.hideWhenPackage?.includes(currentPackage)) continue
+      // Skip fields hidden by showWhen predicate
+      if (!evaluateShowWhen(field, allValues)) continue
 
-      const val = (formData.get(field.name) as string) || ''
-      const error = validateField(field, val)
+      const val = allValues[field.name]
+      let error = validateField(field, val)
+      // Conditional required: pre-opened style/water are required when preOpenedQty > 0
+      if (!error && !val.trim() && (field.name === 'preOpenedStyle' || field.name === 'preOpenedWaterSide')) {
+        if (Number(allValues.preOpenedQty || 0) > 0) error = 'This field is required'
+      }
       newErrors[field.name] = error
       if (error) hasError = true
 
@@ -486,6 +540,15 @@ export function IntakeForm({ taskId, initialValues = {} }: { taskId: string; ini
     // Validate time pairs (tear down after set up, service within set up/tear down)
     const timeErrors = validateDateTimePairs(timeValues)
     for (const [key, msg] of Object.entries(timeErrors)) {
+      if (msg) {
+        newErrors[key] = msg
+        hasError = true
+      }
+    }
+
+    // Cross-field coconut math: preOpenedQty + readyBy <= coconutQty
+    const mathErrors = validateCoconutMath(allValues)
+    for (const [key, msg] of Object.entries(mathErrors)) {
       if (msg) {
         newErrors[key] = msg
         hasError = true
@@ -576,7 +639,11 @@ export function IntakeForm({ taskId, initialValues = {} }: { taskId: string; ini
   return (
     <form onSubmit={handleSubmit} className="space-y-8">
       {SECTIONS.map((section) => {
-        const fields = INTAKE_FIELDS.filter((f) => f.section === section.key && !(f.hideWhenPackage && f.hideWhenPackage.includes(selectedPackage)))
+        const fields = INTAKE_FIELDS.filter((f) =>
+          f.section === section.key &&
+          !(f.hideWhenPackage && f.hideWhenPackage.includes(selectedPackage)) &&
+          evaluateShowWhen(f, liveValues)
+        )
         return (
           <div key={section.key} className="bg-white rounded-sm border border-[#e0ddd4]">
             <div className="px-6 pt-6 pb-4 border-b border-[#e8e5dd]">

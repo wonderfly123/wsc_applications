@@ -18,6 +18,9 @@ export interface BEOFields {
   package: string
   coconutQty: string
   readyBy: string
+  preOpenedQty: string
+  preOpenedStyle: string
+  preOpenedWaterSide: string
   garnish: string
   setupProvided: string
   stampStatus: string
@@ -53,6 +56,9 @@ export const FIELD_MAP: Record<keyof BEOFields, string> = {
   package: '72edb0f2-022a-4db4-8ec4-88d694cd54b0',
   coconutQty: '3e9943e1-4e51-466b-9d6d-f01e862a1bec',
   readyBy: '54389f19-e059-4418-b842-1b1cd12539ca',
+  preOpenedQty: 'd2b20171-ebe0-4274-9100-a1de0e8ecbbe',
+  preOpenedStyle: 'cf3f9f4b-4d43-4b8c-b6a9-c87fccad890a',
+  preOpenedWaterSide: 'e5e7e431-989e-4808-9431-9609567f678c',
   garnish: 'b9341990-5265-41a1-ba1e-4cbd3c767084',
   setupProvided: '87c25b9c-21b0-4420-8ad9-3d36265d567b',
   stampStatus: '843a7dd5-b277-4429-8240-78515c297a05',

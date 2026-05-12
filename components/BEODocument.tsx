@@ -56,6 +56,8 @@ function FullWidthField({ label, value, notes }: { label: string; value: string;
 
 export function BEODocument({ data, taskId }: { data: BEOData; taskId: string }) {
   const isSandcastle = data.package === 'Sandcastle'
+  const preOpenedNum = Number(data.preOpenedQty)
+  const hasPreOpened = !isNaN(preOpenedNum) && preOpenedNum > 0
   return (
     <div className="w-[820px] min-h-[1060px] mx-auto bg-white shadow-[0_6px_48px_rgba(0,0,0,0.10)] my-10 print:w-full print:my-0 print:shadow-none">
       {/* Header */}
@@ -110,10 +112,21 @@ export function BEODocument({ data, taskId }: { data: BEOData; taskId: string })
             <Field label="Coconut Qty" value={data.coconutQty} last />
           </FieldRow>
           {isSandcastle ? null : (
-            <FieldRow last>
-              <Field label="Coconuts Opened by Service Time" value={data.readyBy} />
+            <FieldRow last={!hasPreOpened}>
+              <Field label="Coconuts Ready at Service Start" value={data.readyBy} />
               <Field label="Setup Provided" value={data.setupProvided} last />
             </FieldRow>
+          )}
+          {hasPreOpened && (
+            <>
+              <FieldRow>
+                <Field label="Opened Before Transport" value={data.preOpenedQty} />
+                <Field label="Pre-Opened Style" value={data.preOpenedStyle} last />
+              </FieldRow>
+              <FieldRow last>
+                <FullWidthField label="Coconut Water on the Side" value={data.preOpenedWaterSide} />
+              </FieldRow>
+            </>
           )}
         </Section>
 
