@@ -219,6 +219,62 @@ function PlacesAutocomplete({ name, required, placeholder, baseClass, onBlur, on
   )
 }
 
+function HelpImagesPopover({ images }: { images: NonNullable<IntakeFieldDef['helpImages']> }) {
+  const [open, setOpen] = useState(false)
+  const ref = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    function handleClick(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false)
+    }
+    function handleKey(e: KeyboardEvent) {
+      if (e.key === 'Escape') setOpen(false)
+    }
+    if (open) {
+      document.addEventListener('mousedown', handleClick)
+      document.addEventListener('keydown', handleKey)
+      return () => {
+        document.removeEventListener('mousedown', handleClick)
+        document.removeEventListener('keydown', handleKey)
+      }
+    }
+  }, [open])
+
+  return (
+    <div ref={ref} className="relative inline-block ml-1.5 align-middle">
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        aria-label="See reference photos"
+        className="w-5 h-5 rounded-full border border-[#bbb8b0] text-[#8b6914] text-[11px] font-medium hover:bg-[#8b6914]/10 transition-colors inline-flex items-center justify-center"
+      >
+        ?
+      </button>
+      {open && (
+        <div className="absolute z-50 left-0 sm:left-auto sm:right-0 mt-2 w-[min(92vw,420px)] bg-white border border-[#e0ddd4] rounded-sm shadow-xl p-3">
+          <div className="flex justify-between items-center mb-2">
+            <span className="text-[12px] uppercase tracking-wider text-[#878774] font-[family-name:var(--font-jost)]">Reference</span>
+            <button type="button" onClick={() => setOpen(false)} aria-label="Close" className="text-[#9a9890] hover:text-[#1e1d1a]">
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            {images.map((img) => (
+              <div key={img.src} className="flex flex-col items-center">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={img.src} alt={img.label} className="w-full h-32 object-cover rounded-sm border border-[#e0ddd4]" />
+                <span className="mt-1.5 text-[13px] text-[#1e1d1a] font-[family-name:var(--font-jost)]">{img.label}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
 function FormField({ field, error, onBlur, onPlaceSelect, labelOverride, defaultValue }: { field: IntakeFieldDef; error?: string | null; onBlur?: (name: string, value: string) => void; onPlaceSelect?: (name: string, valid: boolean) => void; labelOverride?: string; defaultValue?: string }) {
   const hasError = !!error
   const normalClass =
@@ -239,6 +295,7 @@ function FormField({ field, error, onBlur, onPlaceSelect, labelOverride, default
       >
         {labelOverride || field.label}
         {field.required && <span className="text-[#c44b2b] ml-0.5">*</span>}
+        {field.helpImages && field.helpImages.length > 0 && <HelpImagesPopover images={field.helpImages} />}
       </label>
       {field.helpText && (
         <p className="text-[13px] text-[#9a9890] font-[family-name:var(--font-jost)] mb-1.5">{field.helpText}</p>

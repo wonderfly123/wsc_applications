@@ -13,6 +13,7 @@ export interface IntakeFieldDef {
   hideWhenPackage?: string[] // hide this field when package matches one of these values
   labelByPackage?: Record<string, string> // override label when package matches
   showWhen?: { field: string; op: '>' | '>=' | '=='; value: number | string } // show only when another field's value satisfies the predicate
+  helpImages?: Array<{ src: string; label: string }> // reference photos displayed via an info popup next to the field label
 }
 
 // Matches the ClickUp Events list custom fields exactly
@@ -34,7 +35,7 @@ export const INTAKE_FIELDS: IntakeFieldDef[] = [
   { name: 'readyBy', label: 'Coconuts Ready at Service Start', type: 'number', required: true, clickupFieldId: '54389f19-e059-4418-b842-1b1cd12539ca', clickupFieldType: 'number', helpText: 'How many to have pre-opened when guests arrive; the rest are opened on-demand.', section: 'package', hideWhenPackage: ['Sandcastle'] },
   { name: 'setupProvided', label: 'Setup Provided?', type: 'select', required: true, clickupFieldId: '87c25b9c-21b0-4420-8ad9-3d36265d567b', clickupFieldType: 'drop_down', options: ['N/A', 'Yes', 'No'], helpText: 'Do you have an existing setup you\'d like us to use?', section: 'package', hideWhenPackage: ['Sandcastle'] },
   { name: 'preOpenedQty', label: 'Coconuts Opened Before Transport', type: 'number', required: false, clickupFieldId: 'd2b20171-ebe0-4274-9100-a1de0e8ecbbe', clickupFieldType: 'number', helpText: 'Opened at our kitchen and delivered already prepped. Leave 0 if none.', section: 'package' },
-  { name: 'preOpenedStyle', label: 'Pre-Opened Style', type: 'select', required: false, clickupFieldId: 'cf3f9f4b-4d43-4b8c-b6a9-c87fccad890a', clickupFieldType: 'drop_down', options: ['Straw opening', 'Cut open'], section: 'package', showWhen: { field: 'preOpenedQty', op: '>', value: 0 } },
+  { name: 'preOpenedStyle', label: 'Pre-Opened Style', type: 'select', required: false, clickupFieldId: 'cf3f9f4b-4d43-4b8c-b6a9-c87fccad890a', clickupFieldType: 'drop_down', options: ['Straw opening', 'Cut open'], section: 'package', showWhen: { field: 'preOpenedQty', op: '>', value: 0 }, helpImages: [{ src: '/coconut-straw-opening.png', label: 'Straw opening' }, { src: '/coconut-cut-open.png', label: 'Cut open' }] },
   { name: 'preOpenedWaterSide', label: 'Coconut Water on the Side?', type: 'select', required: false, clickupFieldId: 'e5e7e431-989e-4808-9431-9609567f678c', clickupFieldType: 'drop_down', options: ['Yes', 'No'], helpText: 'Serve the water in a separate bottle alongside the coconut.', section: 'package', showWhen: { field: 'preOpenedQty', op: '>', value: 0 } },
 
   // === Event Location and Timing ===
