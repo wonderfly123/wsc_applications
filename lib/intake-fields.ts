@@ -12,6 +12,7 @@ export interface IntakeFieldDef {
   half?: boolean // render at half width (side-by-side)
   hideWhenPackage?: string[] // hide this field when package matches one of these values
   labelByPackage?: Record<string, string> // override label when package matches
+  helpByPackage?: Record<string, string> // override helpText when package matches
   showWhen?: { field: string; op: '>' | '>=' | '=='; value: number | string } // show only when another field's value satisfies the predicate
   helpImages?: Array<{ src: string; label: string }> // reference photos displayed via an info popup next to the field label
 }
@@ -39,10 +40,10 @@ export const INTAKE_FIELDS: IntakeFieldDef[] = [
   { name: 'preOpenedWaterSide', label: 'Coconut Water on the Side?', type: 'select', required: false, clickupFieldId: 'e5e7e431-989e-4808-9431-9609567f678c', clickupFieldType: 'drop_down', options: ['Yes', 'No'], helpText: 'Serve the water in a separate bottle alongside the coconut.', section: 'package', showWhen: { field: 'preOpenedQty', op: '>', value: 0 } },
 
   // === Event Location and Timing ===
-  { name: 'setupTime', label: 'Set Up Date and Time', type: 'datetime-local', required: true, clickupFieldId: '', clickupFieldType: 'task_start_date', section: 'timing', half: true, labelByPackage: { Sandcastle: 'Delivery Window Start Date and Time' } },
-  { name: 'teardownTime', label: 'Tear Down Date and Time', type: 'datetime-local', required: true, clickupFieldId: '', clickupFieldType: 'task_due_date', section: 'timing', half: true, labelByPackage: { Sandcastle: 'Delivery Window End Date and Time' } },
-  { name: 'serviceStart', label: 'Service Start Date and Time', type: 'datetime-local', required: true, clickupFieldId: 'f6483054-1434-4c04-ac53-06af6042a96f', clickupFieldType: 'date', section: 'timing', half: true, hideWhenPackage: ['Sandcastle'] },
-  { name: 'serviceEnd', label: 'Service End Date and Time', type: 'datetime-local', required: true, clickupFieldId: 'c4bcdf67-b72d-4531-953e-5cb542b14a3e', clickupFieldType: 'date', section: 'timing', half: true, hideWhenPackage: ['Sandcastle'] },
+  { name: 'setupTime', label: 'Set Up Date and Time', type: 'datetime-local', required: true, clickupFieldId: '', clickupFieldType: 'task_start_date', helpText: 'When our team arrives to set up at the venue.', section: 'timing', half: true, labelByPackage: { Sandcastle: 'Delivery Window Start Date and Time' }, helpByPackage: { Sandcastle: 'Earliest time we can drop off the coconuts.' } },
+  { name: 'teardownTime', label: 'Tear Down Date and Time', type: 'datetime-local', required: true, clickupFieldId: '', clickupFieldType: 'task_due_date', helpText: 'When our team finishes teardown and leaves.', section: 'timing', half: true, labelByPackage: { Sandcastle: 'Delivery Window End Date and Time' }, helpByPackage: { Sandcastle: 'Latest time we can drop off the coconuts.' } },
+  { name: 'serviceStart', label: 'Service Start Date and Time', type: 'datetime-local', required: true, clickupFieldId: 'f6483054-1434-4c04-ac53-06af6042a96f', clickupFieldType: 'date', helpText: 'When we begin serving guests.', section: 'timing', half: true, hideWhenPackage: ['Sandcastle'] },
+  { name: 'serviceEnd', label: 'Service End Date and Time', type: 'datetime-local', required: true, clickupFieldId: 'c4bcdf67-b72d-4531-953e-5cb542b14a3e', clickupFieldType: 'date', helpText: 'When service ends and we stop serving.', section: 'timing', half: true, hideWhenPackage: ['Sandcastle'] },
   { name: 'eventLocation', label: 'Event Location', type: 'text', required: true, clickupFieldId: 'b92b1e46-363e-4453-9888-b530ecdeefce', clickupFieldType: 'location', placeholder: 'Venue name and address', section: 'timing', half: true, hideWhenPackage: ['Sandcastle'] },
   { name: 'loadInLocation', label: 'Vendor Load-in Location', type: 'text', required: true, clickupFieldId: '967038c5-4d18-41d5-8c63-f01bf20ece7a', clickupFieldType: 'location', placeholder: 'Where should we load in?', section: 'timing', half: true, labelByPackage: { Sandcastle: 'Delivery Location' } },
 

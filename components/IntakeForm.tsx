@@ -50,24 +50,32 @@ function validateCoconutMath(values: Record<string, string>): Record<string, str
   return errs
 }
 
-function validateDateTimePairs(values: Record<string, string>): Record<string, string | null> {
+function validateDateTimePairs(values: Record<string, string>, currentPackage: string): Record<string, string | null> {
   const errs: Record<string, string | null> = {}
   const setup = values.setupTime ? new Date(values.setupTime) : null
   const teardown = values.teardownTime ? new Date(values.teardownTime) : null
   const serviceStart = values.serviceStart ? new Date(values.serviceStart) : null
   const serviceEnd = values.serviceEnd ? new Date(values.serviceEnd) : null
+  const isSandcastle = currentPackage === 'Sandcastle'
 
   if (setup && teardown && teardown <= setup) {
-    errs.teardownTime = 'End time must be after start time'
+    errs.teardownTime = isSandcastle
+      ? 'Delivery window end must be after the start'
+      : 'Tear down must be after set up'
   }
-  if (serviceStart && serviceEnd && serviceEnd <= serviceStart) {
-    errs.serviceEnd = 'End time must be after start time'
-  }
-  if (setup && serviceStart && serviceStart < setup) {
-    errs.serviceStart = 'Must be after start time'
-  }
-  if (teardown && serviceEnd && serviceEnd > teardown) {
-    errs.serviceEnd = errs.serviceEnd || 'Must be before end time'
+
+  if (!isSandcastle) {
+    if (serviceStart && serviceEnd && serviceEnd <= serviceStart) {
+      errs.serviceEnd = 'Service end must be after service start'
+    }
+    // Setup must be strictly before service starts (staff arrives ahead of service)
+    if (setup && serviceStart && setup >= serviceStart) {
+      errs.setupTime = 'Set up must be before service starts'
+    }
+    // Teardown must be strictly after service ends
+    if (teardown && serviceEnd && teardown <= serviceEnd) {
+      errs.teardownTime = errs.teardownTime || 'Tear down must be after service ends'
+    }
   }
   return errs
 }
@@ -275,7 +283,7 @@ function HelpImagesPopover({ images }: { images: NonNullable<IntakeFieldDef['hel
   )
 }
 
-function FormField({ field, error, onBlur, onPlaceSelect, labelOverride, defaultValue }: { field: IntakeFieldDef; error?: string | null; onBlur?: (name: string, value: string) => void; onPlaceSelect?: (name: string, valid: boolean) => void; labelOverride?: string; defaultValue?: string }) {
+function FormField({ field, error, onBlur, onPlaceSelect, labelOverride, helpOverride, defaultValue }: { field: IntakeFieldDef; error?: string | null; onBlur?: (name: string, value: string) => void; onPlaceSelect?: (name: string, valid: boolean) => void; labelOverride?: string; helpOverride?: string; defaultValue?: string }) {
   const hasError = !!error
   const normalClass =
     'w-full max-w-full rounded-sm px-4 py-3 border border-[#d8d5cc] bg-white text-[#1e1d1a] font-[family-name:var(--font-jost)] text-[15px] placeholder:text-[#bbb8b0] focus:outline-none focus:border-[#8b6914] focus:ring-2 focus:ring-[#8b6914]/20 transition-all box-border'
@@ -297,8 +305,8 @@ function FormField({ field, error, onBlur, onPlaceSelect, labelOverride, default
         {field.required && <span className="text-[#c44b2b] ml-0.5">*</span>}
         {field.helpImages && field.helpImages.length > 0 && <HelpImagesPopover images={field.helpImages} />}
       </label>
-      {field.helpText && (
-        <p className="text-[13px] text-[#9a9890] font-[family-name:var(--font-jost)] mb-1.5">{field.helpText}</p>
+      {(helpOverride || field.helpText) && (
+        <p className="text-[13px] text-[#9a9890] font-[family-name:var(--font-jost)] mb-1.5">{helpOverride || field.helpText}</p>
       )}
 
       {field.type === 'select' ? (
@@ -436,20 +444,22 @@ function renderFieldGrid(fields: IntakeFieldDef[], errors: Record<string, string
     const field = fields[i]
     const next = fields[i + 1]
     const label = (selectedPackage && field.labelByPackage?.[selectedPackage]) || undefined
+    const help = (selectedPackage && field.helpByPackage?.[selectedPackage]) || undefined
     const nextLabel = next ? (selectedPackage && next.labelByPackage?.[selectedPackage]) || undefined : undefined
+    const nextHelp = next ? (selectedPackage && next.helpByPackage?.[selectedPackage]) || undefined : undefined
 
     if (field.half && next?.half) {
       rows.push(
         <div key={field.name} className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <FormField field={field} error={errors[field.name]} onBlur={onBlur} onPlaceSelect={onPlaceSelect} labelOverride={label} defaultValue={initialValues[field.name]} />
-          <FormField field={next} error={errors[next.name]} onBlur={onBlur} onPlaceSelect={onPlaceSelect} labelOverride={nextLabel} defaultValue={initialValues[next.name]} />
+          <FormField field={field} error={errors[field.name]} onBlur={onBlur} onPlaceSelect={onPlaceSelect} labelOverride={label} helpOverride={help} defaultValue={initialValues[field.name]} />
+          <FormField field={next} error={errors[next.name]} onBlur={onBlur} onPlaceSelect={onPlaceSelect} labelOverride={nextLabel} helpOverride={nextHelp} defaultValue={initialValues[next.name]} />
         </div>
       )
       i += 2
     } else {
       rows.push(
         <div key={field.name}>
-          <FormField field={field} error={errors[field.name]} onBlur={onBlur} onPlaceSelect={onPlaceSelect} labelOverride={label} defaultValue={initialValues[field.name]} />
+          <FormField field={field} error={errors[field.name]} onBlur={onBlur} onPlaceSelect={onPlaceSelect} labelOverride={label} helpOverride={help} defaultValue={initialValues[field.name]} />
         </div>
       )
       i += 1
@@ -529,7 +539,8 @@ export function IntakeForm({ taskId, initialValues = {} }: { taskId: string; ini
               values[f.name] = f.name === name ? value : (formData.get(f.name) as string) || ''
             }
           }
-          const timeErrors = validateDateTimePairs(values)
+          const currentPackage = (formData.get('package') as string) || ''
+          const timeErrors = validateDateTimePairs(values, currentPackage)
           for (const [key, msg] of Object.entries(timeErrors)) {
             if (msg) updated[key] = msg
           }
@@ -595,7 +606,7 @@ export function IntakeForm({ taskId, initialValues = {} }: { taskId: string; ini
     }
 
     // Validate time pairs (tear down after set up, service within set up/tear down)
-    const timeErrors = validateDateTimePairs(timeValues)
+    const timeErrors = validateDateTimePairs(timeValues, currentPackage)
     for (const [key, msg] of Object.entries(timeErrors)) {
       if (msg) {
         newErrors[key] = msg
