@@ -16,29 +16,33 @@ const CLICKUP_FIELDS = {
 }
 
 export async function POST(req: NextRequest) {
+  let body: Record<string, unknown> = {}
   try {
-    const body = await req.json()
+    body = await req.json()
 
     console.log('=== PIPEDRIVE WEBHOOK RECEIVED ===')
     console.log(JSON.stringify(body, null, 2))
 
     // Payload from Pipedrive automation (flat key-value pairs)
-    const dealTitle = body.deal_title || 'Untitled Event'
-    const contactName = body.contact_name || ''
-    const contactEmail = (body.contact_email || '').replace(/^mailto:/i, '')
-    const rawPhone = (body.contact_phone || '').replace(/\D/g, '')
+    const dealTitle = (body.deal_title as string) || 'Untitled Event'
+    const contactName = (body.contact_name as string) || ''
+    const contactEmail = ((body.contact_email as string) || '').replace(/^mailto:/i, '')
+    const rawPhone = ((body.contact_phone as string) || '').replace(/\D/g, '')
     // ClickUp phone fields require E.164 format — prepend +1 for US numbers
     const contactPhone = rawPhone ? (rawPhone.length === 10 ? `+1${rawPhone}` : `+${rawPhone}`) : ''
-    const pipedriveDealId = body.pipedrive_deal_id || ''
-    const eventDate = body.event_date || ''
-    const coconutQty = body.coconut_qty || ''
+    const pipedriveDealId = (body.pipedrive_deal_id as string) || ''
+    const eventDate = (body.event_date as string) || ''
+    const coconutQty = (body.coconut_qty as string) || ''
 
     if (!contactEmail) {
-      console.error('No contact email in webhook payload')
-      return NextResponse.json(
-        { error: 'No contact email found in webhook payload' },
-        { status: 400 }
-      )
+      const msg = 'No contact email found in webhook payload'
+      console.error(msg)
+      await sendErrorAlert({
+        source: 'Pipedrive Webhook',
+        error: msg,
+        context: { dealId: pipedriveDealId, dealTitle, contactName, payload: body },
+      })
+      return NextResponse.json({ error: msg }, { status: 400 })
     }
 
     const description = ''
@@ -96,7 +100,13 @@ export async function POST(req: NextRequest) {
     await sendErrorAlert({
       source: 'Pipedrive Webhook',
       error: errorMsg,
-      context: { url: req.url },
+      context: {
+        url: req.url,
+        dealId: body.pipedrive_deal_id,
+        dealTitle: body.deal_title,
+        contactName: body.contact_name,
+        payload: body,
+      },
     })
     return NextResponse.json(
       { error: errorMsg },
