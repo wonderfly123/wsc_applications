@@ -64,13 +64,13 @@ export async function POST(req: NextRequest) {
     if (lastName) customFields.push({ id: CLICKUP_FIELDS.clientLastName, value: lastName })
     if (coconutQty && !isNaN(Number(coconutQty))) customFields.push({ id: CLICKUP_FIELDS.coconutQty, value: Number(coconutQty) })
 
-    // Parse event date for task start date
+    // Parse event date for task due date
     // Pipedrive sends date-only ("2026-03-28"). Use noon UTC so the date
     // displays on the correct calendar day in any US timezone.
-    const startDate = eventDate ? new Date(`${eventDate}T12:00:00Z`).getTime() : undefined
+    const dueDate = eventDate ? new Date(`${eventDate}T12:00:00Z`).getTime() : undefined
 
     // 1. Create ClickUp task with Pipedrive fields pre-populated
-    const task = await createTask(dealTitle, description, customFields, { startDate })
+    const task = await createTask(dealTitle, description, customFields, { dueDate })
     console.log('ClickUp task created:', task.id)
 
     // 2. Build intake URL and set it on the task
