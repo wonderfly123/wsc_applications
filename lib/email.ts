@@ -72,15 +72,16 @@ export async function sendIntakeEmail(params: {
   await transporter.sendMail({
     from: `Windansea Coconuts <${INTAKE_SMTP_USER}>`,
     to,
-    subject: `🔥 Action Needed - We Need Your Event Details`,
+    subject: `Welcome to Windansea Coconuts — let's plan your event`,
     html: `
       <div style="font-family: Arial, sans-serif; max-width: 600px; color: #333; font-size: 14px; line-height: 1.6;">
         <p>Hi ${clientName},</p>
-        <p>Thank you so much for choosing Windansea Coconuts! We can't wait to make your event special.</p>
-        <p>To get started, please fill out our quick event details form so we can make sure everything is perfect for your big day.</p>
-        <p><a href="${intakeUrl}" style="color: #1a73e8;">Fill out your event details here</a></p>
-        <p>This link is unique to your event. If you ever need to update any details, just come back to this form. It will have your information ready to edit anytime.</p>
-        <p>Warmly,<br/>🥥 Windansea Coconuts</p>
+        <p>I'm Mariela, and it's my pleasure to personally welcome you to Windansea Coconuts. I'll be your dedicated Event Lead, looking after every detail of your event from today through service — so you'll always have one familiar point of contact who knows your celebration inside and out.</p>
+        <p>To begin shaping everything around your vision, would you take a moment to share a few event details below? It helps us make certain every element is just as you imagine.</p>
+        <p><a href="${intakeUrl}" style="color: #1a73e8;">Share your event details here</a></p>
+        <p>This link is unique to your event, so please return anytime — your details are saved and ready to refine whenever you'd like.</p>
+        <p>I can't wait to create something memorable for you.</p>
+        <p>Warmly,<br/>Mariela<br/>Event Lead · Windansea Coconuts 🥥</p>
       </div>
     `,
   })
