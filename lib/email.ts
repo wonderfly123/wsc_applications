@@ -2,6 +2,9 @@ import nodemailer from 'nodemailer'
 
 const SMTP_USER = 'harrison@windanseacoconuts.com'
 
+// Second sender account, used for client-facing intake emails
+const INTAKE_SMTP_USER = 'mariela@windanseacoconuts.com'
+
 function getTransporter() {
   const pass = process.env.SMTP_PASS
   if (!pass) throw new Error('SMTP_PASS must be set')
@@ -11,6 +14,18 @@ function getTransporter() {
     port: 587,
     secure: false,
     auth: { user: SMTP_USER, pass },
+  })
+}
+
+function getIntakeTransporter() {
+  const pass = process.env.SMTP_PASS_INTAKE
+  if (!pass) throw new Error('SMTP_PASS_INTAKE must be set')
+
+  return nodemailer.createTransport({
+    host: 'smtp.gmail.com',
+    port: 587,
+    secure: false,
+    auth: { user: INTAKE_SMTP_USER, pass },
   })
 }
 
@@ -52,10 +67,10 @@ export async function sendIntakeEmail(params: {
   intakeUrl: string
 }) {
   const { to, clientName, intakeUrl } = params
-  const transporter = getTransporter()
+  const transporter = getIntakeTransporter()
 
   await transporter.sendMail({
-    from: `Windansea Coconuts <${SMTP_USER}>`,
+    from: `Windansea Coconuts <${INTAKE_SMTP_USER}>`,
     to,
     subject: `🔥 Action Needed - We Need Your Event Details`,
     html: `
