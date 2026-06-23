@@ -44,8 +44,17 @@ function validateCoconutMath(values: Record<string, string>): Record<string, str
   const total = Number(values.coconutQty || 0)
   const preOpened = Number(values.preOpenedQty || 0)
   const readyBy = Number(values.readyBy || 0)
-  if (!isNaN(total) && total > 0 && (preOpened + readyBy) > total) {
-    errs.preOpenedQty = `Pre-opened (${preOpened}) + ready at service (${readyBy}) exceeds total coconuts (${total})`
+  if (isNaN(total) || total <= 0) return errs
+  // readyBy = coconuts ready at service start; cannot exceed the total.
+  if (readyBy > total) {
+    errs.readyBy = `Ready at service (${readyBy}) exceeds total coconuts (${total})`
+  }
+  // preOpened = coconuts opened before transport — a subset of those ready at
+  // service, not an additional bucket. It must fit within readyBy (and total).
+  if (preOpened > total) {
+    errs.preOpenedQty = `Opened before transport (${preOpened}) exceeds total coconuts (${total})`
+  } else if (readyBy > 0 && preOpened > readyBy) {
+    errs.preOpenedQty = `Opened before transport (${preOpened}) exceeds coconuts ready at service (${readyBy})`
   }
   return errs
 }
@@ -624,7 +633,7 @@ export function IntakeForm({ taskId, initialValues = {} }: { taskId: string; ini
       }
     }
 
-    // Cross-field coconut math: preOpenedQty + readyBy <= coconutQty
+    // Cross-field coconut math: readyBy <= coconutQty, preOpenedQty <= readyBy
     const mathErrors = validateCoconutMath(allValues)
     for (const [key, msg] of Object.entries(mathErrors)) {
       if (msg) {
