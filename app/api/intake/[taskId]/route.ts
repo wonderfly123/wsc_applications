@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { updateTaskFields } from '@/lib/clickup'
+import { updateTaskFields, fetchDropdownOptionIds } from '@/lib/clickup'
 import { INTAKE_FIELDS, UPLOAD_FIELDS, INTAKE_COMPLETE_FIELD_ID, toUtcEpoch } from '@/lib/intake-fields'
 import { sendErrorAlert } from '@/lib/email'
 
@@ -35,6 +35,10 @@ export async function POST(
     // Build custom field updates from form data
     const fieldUpdates: Array<{ id: string; value: unknown; value_options?: Record<string, unknown> }> = []
 
+    // Live name -> option UUID maps for every dropdown on the task, so we write
+    // dropdown values by ClickUp's canonical id instead of by local array index.
+    const dropdownMaps = await fetchDropdownOptionIds(taskId)
+
     for (const field of INTAKE_FIELDS) {
       const rawValue = formData.get(field.name) as string | null
       if (!rawValue) continue
@@ -51,10 +55,18 @@ export async function POST(
           fieldUpdates.push({ id: field.clickupFieldId, value, value_options: { time: true } })
           continue
         case 'drop_down': {
-          const optionIndex = field.options?.indexOf(rawValue)
-          if (optionIndex !== undefined && optionIndex >= 0) {
-            value = optionIndex
+          // Resolve the selected label to ClickUp's stable option UUID. Falling
+          // back to a positional index is what caused values to land on the
+          // wrong option, so if we can't resolve the id we skip the field
+          // rather than write a guess.
+          const optionId = dropdownMaps[field.clickupFieldId]?.[rawValue]
+          if (!optionId) {
+            console.error(
+              `Dropdown option not found in ClickUp: field=${field.name} value="${rawValue}" — skipping`
+            )
+            continue
           }
+          value = optionId
           break
         }
         case 'location': {
@@ -94,8 +106,10 @@ export async function POST(
       }
     }
 
-    // Mark intake as complete (0 = "Yes", first option)
-    fieldUpdates.push({ id: INTAKE_COMPLETE_FIELD_ID, value: 0 })
+    // Mark intake as complete. Resolve "Yes" to its option UUID when available,
+    // falling back to orderindex 0 (the first/"Yes" option) if the map is empty.
+    const completeYesId = dropdownMaps[INTAKE_COMPLETE_FIELD_ID]?.['Yes']
+    fieldUpdates.push({ id: INTAKE_COMPLETE_FIELD_ID, value: completeYesId ?? 0 })
 
     // Update task-level fields (name, start date, due date)
     const apiKey = process.env.CLICKUP_API_KEY

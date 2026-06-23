@@ -67,6 +67,38 @@ export function parseCustomFields(customFields: ClickUpCustomField[], tz: string
   return result
 }
 
+/**
+ * Fetch each drop_down field's live option map (name -> option UUID) for a task.
+ * Used when writing dropdown values so we resolve by ClickUp's canonical option
+ * id rather than by local array position, which can drift out of sync with
+ * ClickUp's orderindex and silently store the wrong option.
+ */
+export async function fetchDropdownOptionIds(
+  taskId: string
+): Promise<Record<string, Record<string, string>>> {
+  const apiKey = process.env.CLICKUP_API_KEY
+  if (!apiKey) return {}
+
+  const res = await fetch(
+    `https://api.clickup.com/api/v2/task/${taskId}?custom_task_ids=false&include_subtasks=false`,
+    { headers: { Authorization: apiKey }, next: { revalidate: 0 } }
+  )
+  if (!res.ok) return {}
+
+  const task = await res.json()
+  const maps: Record<string, Record<string, string>> = {}
+  for (const cf of task.custom_fields ?? []) {
+    if (cf.type === 'drop_down' && Array.isArray(cf.type_config?.options)) {
+      const byName: Record<string, string> = {}
+      for (const o of cf.type_config.options) {
+        if (o?.name && o?.id) byName[o.name] = o.id
+      }
+      maps[cf.id] = byName
+    }
+  }
+  return maps
+}
+
 export async function createTask(
   name: string,
   description: string,
