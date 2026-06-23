@@ -610,6 +610,10 @@ export function IntakeForm({ taskId, initialValues = {} }: { taskId: string; ini
       if (!error && !val.trim() && (field.name === 'preOpenedStyle' || field.name === 'preOpenedWaterSide')) {
         if (Number(allValues.preOpenedQty || 0) > 0) error = 'This field is required'
       }
+      // Conditional required: Other Garnish is required when garnish is "Other"
+      if (!error && !val.trim() && field.name === 'otherGarnish' && allValues.garnish === 'Other') {
+        error = 'This field is required'
+      }
       newErrors[field.name] = error
       if (error) hasError = true
 

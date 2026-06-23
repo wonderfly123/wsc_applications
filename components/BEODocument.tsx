@@ -108,7 +108,7 @@ export function BEODocument({ data, taskId }: { data: BEOData; taskId: string })
             <Field label="Headcount" value={data.headcount} last />
           </FieldRow>
           <FieldRow>
-            <Field label="Garnish" value={data.garnish} />
+            <Field label="Garnish" value={data.garnish === 'Other' && data.otherGarnish && data.otherGarnish !== '—' ? data.otherGarnish : data.garnish} />
             <Field label="Coconut Qty" value={data.coconutQty} last />
           </FieldRow>
           {isSandcastle ? null : (

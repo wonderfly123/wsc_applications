@@ -22,6 +22,7 @@ export interface BEOFields {
   preOpenedStyle: string
   preOpenedWaterSide: string
   garnish: string
+  otherGarnish: string
   setupProvided: string
   stampStatus: string
   certsNeeded: string
@@ -60,6 +61,7 @@ export const FIELD_MAP: Record<keyof BEOFields, string> = {
   preOpenedStyle: 'cf3f9f4b-4d43-4b8c-b6a9-c87fccad890a',
   preOpenedWaterSide: 'e5e7e431-989e-4808-9431-9609567f678c',
   garnish: 'b9341990-5265-41a1-ba1e-4cbd3c767084',
+  otherGarnish: '8de89e8b-2d7d-4269-b5cb-d8d6e6d3ab7c',
   setupProvided: '87c25b9c-21b0-4420-8ad9-3d36265d567b',
   stampStatus: '843a7dd5-b277-4429-8240-78515c297a05',
   certsNeeded: 'f459ee0d-aa89-4d9e-aeff-bf714b7728d6',
