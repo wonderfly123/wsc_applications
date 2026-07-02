@@ -5,8 +5,9 @@ import { INTAKE_FIELDS, UPLOAD_FIELDS, IntakeFieldDef } from '@/lib/intake-field
 
 function validateField(field: IntakeFieldDef, value: string): string | null {
   const trimmed = value.trim()
-  if (field.required && !trimmed) return 'This field is required'
 
+  // Fields are no longer required to save — customers may not have all info yet.
+  // Format checks below still apply to anything actually entered.
   if (!trimmed) return null
 
   if (field.type === 'email' && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed)) {
@@ -18,7 +19,6 @@ function validateField(field: IntakeFieldDef, value: string): string | null {
   if (field.type === 'number') {
     const num = Number(trimmed)
     if (isNaN(num) || num < 0) return 'Please enter a valid number'
-    if (num === 0 && field.required) return 'Must be greater than 0'
   }
   return null
 }
@@ -605,15 +605,7 @@ export function IntakeForm({ taskId, initialValues = {} }: { taskId: string; ini
       if (!evaluateShowWhen(field, allValues)) continue
 
       const val = allValues[field.name]
-      let error = validateField(field, val)
-      // Conditional required: pre-opened style/water are required when preOpenedQty > 0
-      if (!error && !val.trim() && (field.name === 'preOpenedStyle' || field.name === 'preOpenedWaterSide')) {
-        if (Number(allValues.preOpenedQty || 0) > 0) error = 'This field is required'
-      }
-      // Conditional required: Other Garnish is required when garnish is "Other"
-      if (!error && !val.trim() && field.name === 'otherGarnish' && allValues.garnish === 'Other') {
-        error = 'This field is required'
-      }
+      const error = validateField(field, val)
       newErrors[field.name] = error
       if (error) hasError = true
 
@@ -646,15 +638,10 @@ export function IntakeForm({ taskId, initialValues = {} }: { taskId: string; ini
       }
     }
 
-    // Validate required file uploads
+    // File uploads are optional — customers may not have documents yet.
     const newFileErrors: Record<string, string | null> = {}
     for (const upload of UPLOAD_FIELDS) {
-      if (upload.required && !files[upload.name]) {
-        newFileErrors[upload.name] = `${upload.label} is required`
-        hasError = true
-      } else {
-        newFileErrors[upload.name] = null
-      }
+      newFileErrors[upload.name] = null
     }
 
     setErrors(newErrors)
@@ -728,7 +715,7 @@ export function IntakeForm({ taskId, initialValues = {} }: { taskId: string; ini
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-8">
+    <form onSubmit={handleSubmit} noValidate className="space-y-8">
       {SECTIONS.map((section) => {
         const fields = INTAKE_FIELDS.filter((f) =>
           f.section === section.key &&
