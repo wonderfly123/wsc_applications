@@ -1,4 +1,5 @@
 import nodemailer from 'nodemailer'
+import { DECAL_RECIPIENT, DECAL_CC, DECAL_REPLY_TO } from './decal'
 
 const SMTP_USER = 'harrison@windanseacoconuts.com'
 
@@ -74,5 +75,24 @@ export async function sendIntakeEmail(params: {
         <p>Warmly,<br/>Harrison<br/>Owner, Windansea Coconuts 🥥</p>
       </div>
     `,
+  })
+}
+
+export async function sendDecalOrderEmail(params: {
+  subject: string
+  html: string
+  text: string
+  attachment?: { filename: string; content: Buffer; contentType?: string }
+}) {
+  const transporter = getTransporter()
+  await transporter.sendMail({
+    from: `Windansea Coconuts <${SMTP_USER}>`,
+    to: DECAL_RECIPIENT,
+    cc: DECAL_CC,
+    replyTo: DECAL_REPLY_TO,
+    subject: params.subject,
+    html: params.html,
+    text: params.text,
+    attachments: params.attachment ? [params.attachment] : undefined,
   })
 }
