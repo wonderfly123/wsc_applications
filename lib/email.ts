@@ -82,7 +82,7 @@ export async function sendDecalOrderEmail(params: {
   subject: string
   html: string
   text: string
-  attachment?: { filename: string; content: Buffer; contentType?: string }
+  attachments: Array<{ filename: string; content: Buffer; contentType?: string }>
 }) {
   const transporter = getTransporter()
   await transporter.sendMail({
@@ -93,6 +93,6 @@ export async function sendDecalOrderEmail(params: {
     subject: params.subject,
     html: params.html,
     text: params.text,
-    attachments: params.attachment ? [params.attachment] : undefined,
+    attachments: params.attachments,
   })
 }

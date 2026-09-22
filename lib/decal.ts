@@ -134,7 +134,7 @@ export function buildDecalEmail(
   const html = `
     <div style="font-family: Arial, sans-serif; max-width: 600px; color: #333; font-size: 14px; line-height: 1.6;">
       <p>Hi Marcus,</p>
-      <p>New decal order from Windansea Coconuts${order.rush ? ' — <strong>this one is a rush</strong>' : ''}. Details below${logoFilename ? ', logo attached' : ''}.</p>
+      <p>New decal order from Windansea Coconuts${order.rush ? ' — <strong>this one is a rush</strong>' : ''}. Details below, and the order sheet is attached as a PDF${logoFilename ? ' along with the logo file' : ''}.</p>
       <table style="border-collapse: collapse; width: 100%;">
         ${rows
           .map(

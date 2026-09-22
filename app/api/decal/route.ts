@@ -2,6 +2,7 @@ import { timingSafeEqual } from 'crypto'
 import { NextRequest, NextResponse } from 'next/server'
 import { sendDecalOrderEmail, sendErrorAlert } from '@/lib/email'
 import { validateDecalOrder, validateLogoFile, buildDecalEmail, safeFilename } from '@/lib/decal'
+import { buildDecalOrderPdf, decalPdfFilename } from '@/lib/decal-pdf'
 
 function passwordMatches(supplied: string): boolean {
   const expected = process.env.DECAL_FORM_PASSWORD
@@ -55,8 +56,23 @@ export async function POST(req: NextRequest) {
         }
       : undefined
 
+    const pdfBytes = await buildDecalOrderPdf(
+      order,
+      attachment ? { name: attachment.filename, bytes: new Uint8Array(attachment.content), type: attachment.contentType } : null
+    )
+    const orderSheet = {
+      filename: decalPdfFilename(order),
+      content: Buffer.from(pdfBytes),
+      contentType: 'application/pdf',
+    }
+
     const { subject, html, text } = buildDecalEmail(order, attachment?.filename ?? null)
-    await sendDecalOrderEmail({ subject, html, text, attachment })
+    await sendDecalOrderEmail({
+      subject,
+      html,
+      text,
+      attachments: attachment ? [orderSheet, attachment] : [orderSheet],
+    })
 
     console.log(`Decal order sent: ${order.job} — ${order.quantity} × ${order.size}" (${order.email})`)
     return NextResponse.json({ success: true })
