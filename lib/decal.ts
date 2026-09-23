@@ -3,8 +3,7 @@
  * Pure module — safe to import from both client and server code.
  */
 
-// TODO: switch to marcusbhoskins@gmail.com once the test run is approved
-export const DECAL_RECIPIENT = 'jordan@windanseacoconuts.com'
+export const DECAL_RECIPIENT = 'marcusbhoskins@gmail.com'
 export const DECAL_CC = 'trent@windanseacoconuts.com'
 // Replies from Marcus go to Trent, not the person who submitted the form
 export const DECAL_REPLY_TO = DECAL_CC
