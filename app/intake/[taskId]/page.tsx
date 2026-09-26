@@ -12,6 +12,28 @@ export default async function IntakePage({
 }) {
   const mapsKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY
   const initialValues = await fetchTaskInitialValues(params.taskId)
+
+  // Every real task has a name; none means ClickUp couldn't find this task.
+  if (!initialValues.eventName) {
+    return (
+      <div className="min-h-screen bg-[#f0ede4] flex items-center justify-center px-6">
+        <div className="max-w-md text-center">
+          <h1 className="font-[family-name:var(--font-cormorant)] text-3xl font-semibold text-[#1e1d1a] mb-3">
+            This intake link isn&apos;t valid
+          </h1>
+          <p className="text-[15px] text-[#878774] font-[family-name:var(--font-jost)] leading-relaxed">
+            We couldn&apos;t find the event this link belongs to. Please use the link from your welcome
+            email, or contact{' '}
+            <a href="mailto:harrison@windanseacoconuts.com" className="underline text-[#8b6914]">
+              harrison@windanseacoconuts.com
+            </a>{' '}
+            and we&apos;ll send you a new one.
+          </p>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="min-h-screen bg-[#f0ede4]">
       {mapsKey && (

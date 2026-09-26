@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { updateTaskFields, fetchDropdownOptionIds } from '@/lib/clickup'
 import { INTAKE_FIELDS, UPLOAD_FIELDS, INTAKE_COMPLETE_FIELD_ID, toUtcEpoch, validateUploadSize, validateUploadTotal } from '@/lib/intake-fields'
 import { sendErrorAlert } from '@/lib/email'
+import { normalizePhone } from '@/lib/phone'
 
 async function uploadAttachment(taskId: string, file: File) {
   const apiKey = process.env.CLICKUP_API_KEY
@@ -19,6 +20,16 @@ async function uploadAttachment(taskId: string, file: File) {
   if (!res.ok) {
     throw new Error(`ClickUp attachment upload failed: ${res.status}`)
   }
+}
+
+// Replace raw ClickUp field IDs in an error message with the field's label
+// so alert emails read "Phone (2d0cc4d7…)" instead of a bare UUID.
+const FIELD_LABELS: Array<[string, string]> = [
+  ...INTAKE_FIELDS.filter((f) => f.clickupFieldId).map((f) => [f.clickupFieldId, f.label] as [string, string]),
+  [INTAKE_COMPLETE_FIELD_ID, 'Intake Form Complete'],
+]
+function describeFieldIds(message: string): string {
+  return FIELD_LABELS.reduce((msg, [id, label]) => msg.split(id).join(`"${label}" (${id.slice(0, 8)}…)`), message)
 }
 
 export async function POST(
@@ -95,9 +106,14 @@ export async function POST(
           break
         }
         case 'phone': {
-          // Normalize to E.164: strip non-digits, prepend +1 if needed
-          const digits = rawValue.replace(/\D/g, '')
-          value = digits.length === 10 ? `+1${digits}` : digits.length === 11 && digits[0] === '1' ? `+${digits}` : `+${digits}`
+          // ClickUp only accepts E.164. Skip rather than fail the whole
+          // submission on a number we can't normalise.
+          const normalized = normalizePhone(rawValue)
+          if (!normalized) {
+            console.error(`Phone could not be normalised: "${rawValue}" — skipping`)
+            continue
+          }
+          value = normalized
           break
         }
         default:
@@ -115,11 +131,6 @@ export async function POST(
         fieldUpdates.push({ id: 'b92b1e46-363e-4453-9888-b530ecdeefce', value: deliveryLocation.value })
       }
     }
-
-    // Mark intake as complete. Resolve "Yes" to its option UUID when available,
-    // falling back to orderindex 0 (the first/"Yes" option) if the map is empty.
-    const completeYesId = dropdownMaps[INTAKE_COMPLETE_FIELD_ID]?.['Yes']
-    fieldUpdates.push({ id: INTAKE_COMPLETE_FIELD_ID, value: completeYesId ?? 0 })
 
     // Update task-level fields (name, start date, due date)
     const apiKey = process.env.CLICKUP_API_KEY
@@ -167,11 +178,16 @@ export async function POST(
       }
     }
 
+    // Only now, with every field and upload saved, mark the intake complete.
+    // Resolve "Yes" to its option UUID, falling back to orderindex 0.
+    const completeYesId = dropdownMaps[INTAKE_COMPLETE_FIELD_ID]?.['Yes']
+    await updateTaskFields(taskId, [{ id: INTAKE_COMPLETE_FIELD_ID, value: completeYesId ?? 0 }])
+
     console.log(`Intake form submitted for task ${taskId} — ${fieldUpdates.length} fields updated`)
 
     return NextResponse.json({ success: true })
   } catch (err) {
-    const errorMsg = err instanceof Error ? err.message : 'Unknown error'
+    const errorMsg = describeFieldIds(err instanceof Error ? err.message : 'Unknown error')
     console.error('Intake submission error:', err)
     await sendErrorAlert({
       source: 'Intake Form Submission',

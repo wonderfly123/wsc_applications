@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createTask, updateTaskFields } from '@/lib/clickup'
 import { sendIntakeEmail, sendErrorAlert } from '@/lib/email'
+import { normalizePhone } from '@/lib/phone'
 
 // ClickUp custom field IDs
 const CLICKUP_FIELDS = {
@@ -27,9 +28,8 @@ export async function POST(req: NextRequest) {
     const dealTitle = (body.deal_title as string) || 'Untitled Event'
     const contactName = (body.contact_name as string) || ''
     const contactEmail = ((body.contact_email as string) || '').replace(/^mailto:/i, '')
-    const rawPhone = ((body.contact_phone as string) || '').replace(/\D/g, '')
-    // ClickUp phone fields require E.164 format — prepend +1 for US numbers
-    const contactPhone = rawPhone ? (rawPhone.length === 10 ? `+1${rawPhone}` : `+${rawPhone}`) : ''
+    // ClickUp phone fields require E.164; drop the phone if it can't be normalised
+    const contactPhone = normalizePhone(body.contact_phone as string) ?? ''
     const pipedriveDealId = (body.pipedrive_deal_id as string) || ''
     const eventDate = (body.event_date as string) || ''
     const coconutQty = (body.coconut_qty as string) || ''

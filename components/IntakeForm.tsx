@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState, useCallback } from 'react'
 import { INTAKE_FIELDS, UPLOAD_FIELDS, IntakeFieldDef, validateUploadSize, validateUploadTotal } from '@/lib/intake-fields'
+import { normalizePhone, PHONE_ERROR } from '@/lib/phone'
 
 function validateField(field: IntakeFieldDef, value: string): string | null {
   const trimmed = value.trim()
@@ -13,8 +14,8 @@ function validateField(field: IntakeFieldDef, value: string): string | null {
   if (field.type === 'email' && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed)) {
     return 'Please enter a valid email address'
   }
-  if (field.type === 'tel' && !/^[\d\s()+-]{7,}$/.test(trimmed)) {
-    return 'Please enter a valid phone number'
+  if (field.type === 'tel' && !normalizePhone(trimmed)) {
+    return PHONE_ERROR
   }
   if (field.type === 'number') {
     const num = Number(trimmed)

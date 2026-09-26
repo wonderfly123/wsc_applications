@@ -178,8 +178,11 @@ export async function updateTaskFields(
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(body),
-      }).then((res) => {
-        if (!res.ok) throw new Error(`ClickUp field update failed: ${field.id} — ${res.status}`)
+      }).then(async (res) => {
+        if (!res.ok) {
+          const body = await res.text().catch(() => '')
+          throw new Error(`ClickUp field update failed: ${field.id} — ${res.status} ${body.slice(0, 200)}`.trim())
+        }
       })
     })
   )
