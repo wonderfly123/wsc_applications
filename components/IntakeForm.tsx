@@ -543,7 +543,7 @@ export function IntakeForm({ taskId, initialValues = {} }: { taskId: string; ini
       // For location fields, validate that a Google place was selected
       if (!error && field.clickupFieldType === 'location' && value.trim()) {
         if (!validPlaces.current[name]) {
-          updated[name] = 'Please select an address from the dropdown'
+          updated[name] = "Please pick the address from the dropdown. If you're updating a form you already submitted, click the field and choose it from the dropdown again."
         }
       }
 
@@ -620,7 +620,7 @@ export function IntakeForm({ taskId, initialValues = {} }: { taskId: string; ini
       // Validate location fields have a Google-selected address
       if (field.clickupFieldType === 'location' && val.trim() && !error) {
         if (!validPlaces.current[field.name]) {
-          newErrors[field.name] = 'Please select an address from the dropdown'
+          newErrors[field.name] = "Please pick the address from the dropdown. If you're updating a form you already submitted, click the field and choose it from the dropdown again."
           hasError = true
         }
       }
