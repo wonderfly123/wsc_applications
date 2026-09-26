@@ -66,8 +66,8 @@ export async function sendIntakeEmail(params: {
     html: `
       <div style="font-family: Arial, sans-serif; max-width: 600px; color: #333; font-size: 14px; line-height: 1.6;">
         <p>Hi ${clientName},</p>
-        <p>Thank you for choosing Windansea Coconuts for your event. I'm Harrison, the owner, and I'm glad to have you with us.</p>
-        <p>I'd love to introduce you to Trent, copied here, who will be your dedicated Event Lead. Trent will look after every detail of your event from today through service, so you'll always have one familiar point of contact who knows your celebration inside and out.</p>
+        <p>Thank you for booking with Windansea Coconuts. We're looking forward to your event.</p>
+        <p>I've copied Trent, your Event Lead, who'll be your main point of contact from here through service. Either of us is happy to help with anything along the way.</p>
         <p>To get started, please fill out the event details form below. We need this information to plan and confirm your event, so please complete it as soon as you can.</p>
         <p><a href="${intakeUrl}" style="color: #1a73e8;">Share your event details here</a></p>
         <p>This link is unique to your event, so please return anytime. Your details are saved and ready to refine whenever you'd like.</p>
