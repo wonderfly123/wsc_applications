@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState, useCallback } from 'react'
-import { INTAKE_FIELDS, UPLOAD_FIELDS, IntakeFieldDef } from '@/lib/intake-fields'
+import { INTAKE_FIELDS, UPLOAD_FIELDS, IntakeFieldDef, validateUploadSize, validateUploadTotal } from '@/lib/intake-fields'
 
 function validateField(field: IntakeFieldDef, value: string): string | null {
   const trimmed = value.trim()
@@ -576,9 +576,15 @@ export function IntakeForm({ taskId, initialValues = {} }: { taskId: string; ini
   }, [])
 
   function handleFileChange(name: string, file: File | null) {
+    // Reject oversized files at pick time so the person sees why immediately
+    const sizeError = validateUploadSize(file)
+    if (sizeError) {
+      setFiles((prev) => ({ ...prev, [name]: null }))
+      setFileErrors((prev) => ({ ...prev, [name]: sizeError }))
+      return
+    }
     setFiles((prev) => ({ ...prev, [name]: file }))
-    // Clear file error when a file is selected
-    if (file) setFileErrors((prev) => ({ ...prev, [name]: null }))
+    setFileErrors((prev) => ({ ...prev, [name]: null }))
   }
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
@@ -637,10 +643,18 @@ export function IntakeForm({ taskId, initialValues = {} }: { taskId: string; ini
       }
     }
 
-    // File uploads are optional — customers may not have documents yet.
+    // File uploads are optional — customers may not have documents yet —
+    // but anything attached has to fit under the upload limit.
     const newFileErrors: Record<string, string | null> = {}
     for (const upload of UPLOAD_FIELDS) {
-      newFileErrors[upload.name] = null
+      newFileErrors[upload.name] = validateUploadSize(files[upload.name])
+      if (newFileErrors[upload.name]) hasError = true
+    }
+    const totalError = validateUploadTotal(UPLOAD_FIELDS.map((u) => files[u.name]))
+    if (totalError && !hasError) {
+      // Flag it on the last upload field so it's visible next to the files
+      newFileErrors[UPLOAD_FIELDS[UPLOAD_FIELDS.length - 1].name] = totalError
+      hasError = true
     }
 
     setErrors(newErrors)
@@ -683,9 +697,19 @@ export function IntakeForm({ taskId, initialValues = {} }: { taskId: string; ini
         body: submitData,
       })
 
+      if (res.status === 413) {
+        // Vercel rejected the upload before it reached us
+        throw new Error(
+          'Your files are too large to upload together (4 MB max). Please use smaller files, or remove them and email them to harrison@windanseacoconuts.com after submitting.'
+        )
+      }
       if (!res.ok) {
-        const err = await res.json().catch(() => ({ error: 'Submission failed' }))
-        throw new Error(err.error || `Error ${res.status}`)
+        const err = await res.json().catch(() => ({ error: '' }))
+        throw new Error(
+          err.error
+            ? `We couldn't save your form: ${err.error}. Please try again, or email harrison@windanseacoconuts.com and we'll sort it out.`
+            : `We couldn't save your form (error ${res.status}). Please try again, or email harrison@windanseacoconuts.com and we'll sort it out.`
+        )
       }
 
       setStatus('success')

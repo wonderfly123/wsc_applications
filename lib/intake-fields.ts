@@ -58,11 +58,33 @@ export const INTAKE_FIELDS: IntakeFieldDef[] = [
 
 // File upload fields — uploaded as task attachments with prefixed filenames
 export const UPLOAD_FIELDS = [
-  { name: 'stampLogo', label: 'Stamp Logo File', prefix: '[STAMP LOGO]', required: false, accept: 'image/png,image/jpeg', helpText: 'Upload your logo image (png or jpg)' },
-  { name: 'deliveryMap', label: 'Map of Vendor Delivery Location', prefix: '[DELIVERY MAP]', required: false, accept: 'image/png,image/jpeg,application/pdf', helpText: 'Upload an event/delivery map if available' },
+  { name: 'stampLogo', label: 'Stamp Logo File', prefix: '[STAMP LOGO]', required: false, accept: 'image/png,image/jpeg', helpText: 'Upload your logo image (png or jpg), up to 4 MB' },
+  { name: 'deliveryMap', label: 'Map of Vendor Delivery Location', prefix: '[DELIVERY MAP]', required: false, accept: 'image/png,image/jpeg,application/pdf', helpText: 'Upload an event/delivery map if available, up to 4 MB' },
 ]
 
 // Field ID for marking intake as complete after form submission
+// Vercel rejects request bodies over 4.5 MB before our code runs, so all
+// uploads together must stay under this.
+export const MAX_UPLOAD_BYTES = 4 * 1024 * 1024
+const MAX_UPLOAD_LABEL = '4 MB'
+
+function toMb(bytes: number): string {
+  return `${(bytes / 1024 / 1024).toFixed(1)} MB`
+}
+
+/** Error message for one file over the limit, or null. */
+export function validateUploadSize(file: { name: string; size: number } | null): string | null {
+  if (!file || file.size <= MAX_UPLOAD_BYTES) return null
+  return `This file is ${toMb(file.size)}. Please use a file under ${MAX_UPLOAD_LABEL}, or email it to us separately.`
+}
+
+/** Error message when all files together exceed the limit, or null. */
+export function validateUploadTotal(files: Array<{ size: number } | null | undefined>): string | null {
+  const total = files.reduce((sum, f) => sum + (f?.size ?? 0), 0)
+  if (total <= MAX_UPLOAD_BYTES) return null
+  return `Your files add up to ${toMb(total)}. Together they must be under ${MAX_UPLOAD_LABEL}. Please use smaller files, or email them to us separately.`
+}
+
 export const INTAKE_COMPLETE_FIELD_ID = 'dbeda913-50e7-4988-9f1d-d28ec26a9a6d'
 
 // Timezone display label → IANA timezone ID

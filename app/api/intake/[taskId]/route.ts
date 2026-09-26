@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { updateTaskFields, fetchDropdownOptionIds } from '@/lib/clickup'
-import { INTAKE_FIELDS, UPLOAD_FIELDS, INTAKE_COMPLETE_FIELD_ID, toUtcEpoch } from '@/lib/intake-fields'
+import { INTAKE_FIELDS, UPLOAD_FIELDS, INTAKE_COMPLETE_FIELD_ID, toUtcEpoch, validateUploadSize, validateUploadTotal } from '@/lib/intake-fields'
 import { sendErrorAlert } from '@/lib/email'
 
 async function uploadAttachment(taskId: string, file: File) {
@@ -28,6 +28,16 @@ export async function POST(
   try {
     const formData = await req.formData()
     const { taskId } = params
+
+    // Same upload limits the form enforces, in case a request bypasses it
+    const uploads = UPLOAD_FIELDS.map((u) => {
+      const f = formData.get(u.name)
+      return f instanceof File && f.size > 0 ? f : null
+    })
+    const uploadError = uploads.map(validateUploadSize).find(Boolean) || validateUploadTotal(uploads)
+    if (uploadError) {
+      return NextResponse.json({ error: uploadError }, { status: 400 })
+    }
 
     // All events are Pacific Time
     const tz = 'America/Los_Angeles'
