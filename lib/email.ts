@@ -50,6 +50,51 @@ export async function sendErrorAlert(params: {
   }
 }
 
+// Everyone who should know when a Closed Won deal arrives with blank fields
+const MISSING_FIELDS_RECIPIENTS = [SMTP_USER, ALERT_EMAIL, EVENT_LEAD_EMAIL]
+
+/**
+ * Tell Harrison, Jordan, and Trent that a deal came through the Pipedrive
+ * webhook with required fields blank. Never throws; a failed alert is logged
+ * so it cannot block task creation.
+ */
+export async function sendMissingFieldsAlert(params: {
+  dealTitle: string
+  dealId: string
+  missing: string[]
+  taskUrl?: string
+}) {
+  try {
+    const transporter = getTransporter()
+    const dealLink = params.dealId
+      ? `<a href="https://app.pipedrive.com/deal/${params.dealId}">Open deal ${params.dealId} in Pipedrive</a>`
+      : 'Deal ID was not included in the payload.'
+    const taskLink = params.taskUrl
+      ? `<p><a href="${params.taskUrl}">Open the ClickUp task</a></p>`
+      : '<p>No ClickUp task was created for this deal.</p>'
+
+    await transporter.sendMail({
+      from: `WSC Alerts <${SMTP_USER}>`,
+      to: MISSING_FIELDS_RECIPIENTS,
+      subject: `[WSC] Missing deal info: ${params.dealTitle}`,
+      html: `
+        <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
+          <h3 style="color: #c44b2b;">A Closed Won deal is missing required fields</h3>
+          <p><strong>${params.dealTitle}</strong></p>
+          <p>These fields were blank when the deal was marked won:</p>
+          <ul>${params.missing.map((m) => `<li>${m}</li>`).join('')}</ul>
+          <p>Please fill them in on the Pipedrive deal and the ClickUp task.</p>
+          <p>${dealLink}</p>
+          ${taskLink}
+          <p style="color: #999; font-size: 12px; margin-top: 16px;">Sent from windansea.vercel.app at ${new Date().toISOString()}</p>
+        </div>
+      `,
+    })
+  } catch (emailErr) {
+    console.error('Failed to send missing-fields alert email:', emailErr)
+  }
+}
+
 export async function sendIntakeEmail(params: {
   to: string
   clientName: string

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createTask, updateTaskFields } from '@/lib/clickup'
-import { sendIntakeEmail, sendErrorAlert } from '@/lib/email'
+import { sendIntakeEmail, sendErrorAlert, sendMissingFieldsAlert } from '@/lib/email'
+import { findMissingDealFields } from '@/lib/pipedrive'
 import { normalizePhone } from '@/lib/phone'
 
 // ClickUp custom field IDs
@@ -34,7 +35,16 @@ export async function POST(req: NextRequest) {
     const eventDate = (body.event_date as string) || ''
     const coconutQty = (body.coconut_qty as string) || ''
 
+    // Pipedrive's required-field rules only apply in its UI, so deals marked
+    // won by an automation or the API can arrive with blanks. Flag them to the
+    // team but still create the task so the event isn't lost.
+    const missingFields = findMissingDealFields(body)
+    if (missingFields.length > 0) {
+      console.warn('Deal arrived with missing fields:', missingFields.join(', '))
+    }
+
     if (!contactEmail) {
+      await sendMissingFieldsAlert({ dealTitle, dealId: pipedriveDealId, missing: missingFields })
       const msg = 'No contact email found in webhook payload'
       console.error(msg)
       await sendErrorAlert({
@@ -80,6 +90,15 @@ export async function POST(req: NextRequest) {
     await updateTaskFields(task.id, [
       { id: CLICKUP_FIELDS.uniqueIntakeForm, value: intakeUrl },
     ])
+
+    if (missingFields.length > 0) {
+      await sendMissingFieldsAlert({
+        dealTitle,
+        dealId: pipedriveDealId,
+        missing: missingFields,
+        taskUrl: `https://app.clickup.com/t/${task.id}`,
+      })
+    }
 
     // 3. Send email
     await sendIntakeEmail({

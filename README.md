@@ -85,6 +85,7 @@ All mail goes out through Gmail SMTP as `harrison@windanseacoconuts.com` using `
 |-------|----|----|----------|
 | Client welcome / intake link | Client | trent@windanseacoconuts.com | (default) |
 | Decal order | marcusbhoskins@gmail.com | trent@windanseacoconuts.com | trent@windanseacoconuts.com |
+| Missing deal fields (Pipedrive webhook) | harrison@, jordan@, trent@windanseacoconuts.com | | (default) |
 | Error alert | jordan@windanseacoconuts.com | — | — |
 
 Copy for these lives in `lib/email.ts` and `lib/decal.ts`.
@@ -100,6 +101,7 @@ Copy for these lives in `lib/email.ts` and `lib/decal.ts`.
 ### Webhook behaviour
 
 - **Square** signs each request with HMAC-SHA256 over `<notification URL> + <raw body>`. The route verifies it with `SQUARE_WEBHOOK_SIGNATURE_KEY` (skipped with a warning if unset). Square retries on any non-2xx response with backoff for about 24 hours, so the route checks the Wholesale list for an existing `Inv #<number>` task before creating one.
+- **Pipedrive** required-field rules only apply in its UI, so a deal marked Won by an automation, the API, or an AI assistant can arrive with blanks. The webhook checks every payload field (`lib/pipedrive.ts`) and emails Harrison, Jordan, and Trent listing what is missing, then still creates the task so the event isn't lost. A missing contact email also stops the task from being created, as before.
 - **Pipedrive** automations do **not** retry. If a deal fails (for example, because a credential expired), the deal has to be re-sent by hand. The alert email contains the exact payload, which can be replayed:
 
   ```bash
