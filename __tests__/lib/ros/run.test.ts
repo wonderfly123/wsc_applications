@@ -133,6 +133,21 @@ describe('runRos', () => {
     expect(String(deps.calls.comment[0][1])).toContain('Something changed')
   })
 
+  it('a hand-edited file re-uploaded under any name is treated as the current ROS', async () => {
+    const t = mkTask('a', {
+      custom_fields: [
+        intakeYes,
+        { id: FP, name: 'ROS Fingerprint', type: 'text', value: '' },
+        { id: ROSF, name: 'ROS', type: 'attachment', value: [{ id: 'manual.docx', title: 'Palm Tree edited by Trent.docx', url: 'u', date: '1' }] },
+      ],
+    })
+    const deps = mkDeps([t])
+    expect((await runRos(deps)).updated).toBe(1)
+    expect(deps.calls.compose[0][0]).toMatchObject({ mode: 'update', existingRosText: 'EXISTING TEXT' })
+    expect(deps.calls.upload[0][3]).toBe('[ROS] Event a v2.docx')
+    expect(deps.calls.setFiles[0]).toEqual(['a', ROSF, { add: ['new-att-id.docx'], rem: ['manual.docx'] }])
+  })
+
   it('the ROS files field value never feeds the fingerprint', async () => {
     const t = storeFingerprint(withRos('a'))
     const changedRosField: ClickUpTask = {

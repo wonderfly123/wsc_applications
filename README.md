@@ -63,9 +63,10 @@ Every morning at 7 AM Pacific a cron writes or refreshes the Run of Show for eve
 **How to work with it.**
 
 - The ROS is in the task's **ROS** field, never in the generic attachment list.
-- To get it updated, change the task: edit a field, add a comment with the new detail ("service moved to 3:30"), or drop in an attachment. The next morning's run picks it up. Comments are the easiest way to feed it a correction.
-- Everything the document could not verify is listed under **Confirm Before Event** and repeated in the comment. Treat that list as the to-do before the event.
-- Comments that start with `[ROS]` are the bot's own and are ignored as input.
+- To change it, change the task. Edit a field, add an attachment, or update anything else on the task and the next morning's run folds it in. The bot also reads task comments and client email threads, so details that only live there are picked up too.
+- To edit the document directly, download it, change it in Word, and upload it back into the ROS field (any filename works). The bot treats whatever is in that field as the current version, keeps your edits on the next update, and lists what it changed.
+- Everything the document could not verify is listed under **Confirm Before Event**. Treat that list as the to-do before the event.
+- The bot posts a `[ROS]` comment only when it writes a new version. No new version, no comment.
 - It never emails anyone, never changes other fields, and never touches events more than 14 days out or without a completed intake form.
 
 Manual run for one task: `GET /api/cron/ros?taskId=<id>&force=1` with `Authorization: Bearer $CRON_SECRET` (`force=1` regenerates even when nothing changed). `ROS_DRY_RUN=true` switches to emailing drafts to jordan@ instead of writing to ClickUp.

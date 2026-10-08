@@ -128,12 +128,13 @@ export async function processTask(
   })
   const stored = task.custom_fields.find((f) => f.id === fields.fingerprintFieldId)?.value
   const currentFiles = rosFieldFiles(task, fields.rosFieldId)
-  const latest = latestRosAttachment(currentFiles)
+  // The ROS field is dedicated: whatever file is in it is the current ROS, whatever it is named.
+  const latest = latestRosAttachment(currentFiles, false)
 
   if (latest && stored === fingerprint && !force) return 'skipped'
 
   const mode: ComposeInputs['mode'] = latest ? 'update' : 'create'
-  const version = nextRosVersion(currentFiles)
+  const version = nextRosVersion(currentFiles, false)
   let existingRosText: string | null = null
   if (latest) existingRosText = await deps.extract(await deps.clickup.downloadAttachment(latest.url))
 

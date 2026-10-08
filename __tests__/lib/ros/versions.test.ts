@@ -25,6 +25,13 @@ describe('versions', () => {
     expect(nextRosVersion([att('a', '[ROS] Foo v3 — DRAFT.docx', '1'), att('b', '[ROS] Foo v10 — DRAFT.docx', '2')])).toBe(11)
     expect(nextRosVersion([att('a', '[ROS] Palm Tree.docx', '1')])).toBe(2)
   })
+  it('without the prefix rule, any file counts (the dedicated ROS field)', () => {
+    const edited = [att('m', 'Palm Tree ROS edited by Trent.docx', '9')]
+    expect(latestRosAttachment(edited)).toBeNull()
+    expect(latestRosAttachment(edited, false)?.id).toBe('m')
+    expect(nextRosVersion(edited, false)).toBe(2)
+    expect(nextRosVersion([att('m', 'Palm Tree v4 final.docx', '9')], false)).toBe(5)
+  })
   it('builds the filename', () => {
     expect(rosFilename('Palm Tree Music Festival', 2)).toBe('[ROS] Palm Tree Music Festival v2.docx')
     expect(rosFilename('Smith / Wedding: "Big" Day', 1)).toBe('[ROS] Smith - Wedding- Big Day v1.docx')
