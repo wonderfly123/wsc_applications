@@ -29,11 +29,11 @@ Out of scope: sending the ROS to anyone, editing other ClickUp fields, Pipedrive
 A task is a candidate when all of the following hold:
 
 1. It is in the **Events** list (`CLICKUP_LIST_ID`).
-2. Custom field **Intake Form Complete** (`dbeda913-50e7-4988-9f1d-d28ec26a9a6d`) is **Yes** (option index 0).
+2. Custom field **Intake Form Complete** (`dbeda913-50e7-4988-9f1d-d28ec26a9a6d`) is **Yes**. The option is resolved by **name** from the field's `type_config.options` on the live task (never by array position, matching the rest of the codebase), and the comparison is done in code after fetching.
 3. Its **event date** is between today and today + 14 days, Pacific time. Event date is the **Service Start Date and Time** field (`f6483054-…`), falling back to the task **start date**, then the task **due date**. Tasks with none of these are skipped and reported in the run summary.
 4. The task is not closed.
 
-Selection uses the ClickUp "get tasks in list" endpoint with a custom-field filter on Intake Form Complete, then the date window is applied in code. Pagination is followed until exhausted.
+Selection uses the ClickUp "get tasks in list" endpoint (open tasks, with custom fields and subtasks excluded), follows pagination until exhausted, then applies the Intake Form Complete and date-window checks in code. Candidates are processed in **event date ascending** order so the time budget never starves the soonest events.
 
 ## Per-task flow
 
@@ -60,12 +60,14 @@ Each task is processed independently. A failure on one task is logged, alerted, 
 
 The fingerprint is a SHA-256 over a canonical JSON of:
 
-- every custom field id → value on the task (the full set, not a curated list, so any intake edit counts),
+- every custom field id → value on the task **except** the `ROS Fingerprint` field itself (the full set otherwise, so any intake edit counts),
 - task name, start date, due date, status,
-- sorted attachment ids,
-- sorted comment ids,
+- sorted ids of attachments whose title does **not** start with `[ROS]`,
+- sorted ids of comments whose text does **not** start with `[ROS]` (the bot's own comments use that prefix; human comments, including Trent's review notes, **do** count as input because they often carry logistics changes),
 - sorted email message ids of the matching messages,
 - a `ROS_SCHEMA_VERSION` constant, so a generator change forces a refresh.
+
+These exclusions matter: the route's own writes (the `[ROS]` file, the `[ROS]` comment, the fingerprint value) must not change the hash, or SKIP could never happen and every managed task would be regenerated daily.
 
 It is stored in a new **text custom field on the Events list named `ROS Fingerprint`**. This field must be created by hand in ClickUp once; the ClickUp API cannot create custom fields. The route resolves the field id at the start of each run by listing the Events list's custom fields and matching the name exactly (`GET /list/{id}/field`). If no field with that name exists, the route fails fast with a clear error and alert on every run until it is fixed, rather than regenerating everything daily.
 
@@ -81,7 +83,7 @@ A manually uploaded `[ROS]` file (for example the Palm Tree ROS produced on 2026
 
 ## ROS composition (Claude API)
 
-Model: the latest Sonnet-class model, set in one constant. One call per CREATE or UPDATE. Output is constrained to a JSON schema (`RosDocument`) via tool use, so rendering never depends on free text.
+Model: `claude-sonnet-5-5`, set in one constant. One call per CREATE or UPDATE. Output is constrained to a JSON schema (`RosDocument`) via a single forced tool call, so rendering never depends on free text. The tool's `input_schema` is hand-written JSON Schema in `lib/ros/types.ts`, and the response is checked by a hand-rolled type guard (`isRosDocument`) before rendering; no schema library is added.
 
 ```ts
 interface RosDocument {
@@ -100,7 +102,13 @@ interface RosDocument {
 }
 ```
 
-Prompt inputs: the task fields (resolved dropdown names, Pacific-formatted dates), attachment titles, comments, email excerpts, the Windansea house style (warehouse address, timesheet and invoice post-event steps, packing conventions), and in UPDATE mode the plain text of the latest ROS.
+Prompt inputs: the task fields (resolved dropdown names, Pacific-formatted dates), attachment titles, comments, email excerpts, the house style and exemplar described below, and in UPDATE mode the plain text of the latest ROS.
+
+**Exemplar and house style, checked into the repo as a prerequisite task:**
+
+- `lib/ros/exemplar.ts` exports the LJBTC End of Summer Luau ROS (2026-10-09) as a `RosDocument` constant. It is the few-shot example in the prompt, the render snapshot baseline in tests, and the structural template. Its content comes from the Word file on Jordan's Desktop (`2_LJBTC_End_of_Summer_Luau_ROS_Oct9 (1).docx`), transcribed during implementation.
+- `lib/ros/house-style.ts` exports the fixed Windansea facts the model may use without them appearing in the inputs: warehouse address (9040 Kenamar Dr, Unit 403, San Diego), the standard post-event steps (add hours to the 2026 Timesheet; confirm final payment, follow up on invoice), the Windansea contact line (Trent LiVolsi, 732-575-5774), the standard packing list by category (coconuts and service items, tools, display and setup, cleaning and safety, team), and the package definitions (Sandcastle delivery only; Cabana delivery plus live service; Villa full service and brand activation). Anything not in this file or the inputs is an open item.
+- `docs/ros/palm-tree-2026-10-10.md` holds the text of the Palm Tree ROS produced by hand on 2026-10-08, as a second worked example for the implementer. It is reference only and is not sent to the model.
 
 Rules given to the model:
 
@@ -120,7 +128,7 @@ Reading an existing ROS for UPDATE mode: unzip the `.docx` (`jszip`), extract pa
 ## ClickUp writes
 
 - Attachment: `POST /task/{id}/attachment` multipart, same as the intake route's existing helper, moved into `lib/clickup.ts`.
-- Comment: `POST /task/{id}/comment`. CREATE: "ROS v1 drafted — @Trent please review. Open items: …". UPDATE: "ROS v<N> — updated: <changes>. Open items: …". Trent is mentioned by ClickUp user id from env `CLICKUP_USER_ID_TRENT`; if unset, the comment is posted without a mention.
+- Comment: `POST /task/{id}/comment`, always starting with `[ROS]` so the fingerprint can exclude it. CREATE: "[ROS] v1 drafted — @Trent please review. Open items: …". UPDATE: "[ROS] v<N> — updated: <changes>. Open items: …". Trent is mentioned by ClickUp user id from env `CLICKUP_USER_ID_TRENT`; if unset, the comment is posted without a mention.
 - Fingerprint: `POST /task/{id}/field/{fieldId}` with the new hash, written **after** the attachment and comment succeed.
 
 ## Dry-run mode
@@ -133,14 +141,14 @@ Reading an existing ROS for UPDATE mode: unzip the `.docx` (`jszip`), extract pa
 - Auth: `Authorization: Bearer ${CRON_SECRET}` (Vercel sets this header for scheduled invocations). Missing or wrong secret → 401.
 - `vercel.json`: `{ "crons": [{ "path": "/api/cron/ros", "schedule": "0 14 * * *" }] }`.
 - Response: JSON summary `{ considered, created, updated, skipped, deferred, failed: [{taskId, error}], dryRun }`. Also logged.
-- Manual trigger for testing: same route with the secret, optional `?taskId=` to process one task regardless of window.
+- Manual trigger for testing: same route with the secret. `?taskId=<id>` processes one task regardless of the window. `?force=1` additionally bypasses the SKIP branch (treats the fingerprint as changed) so a re-test does not require editing a field.
 
 ## Errors and alerts
 
 - Per-task failures: caught, appended to `failed`, one alert email per run listing all failures via the existing `sendErrorAlert`.
 - Fatal setup failures (missing fingerprint field, missing API key): 500, alert email, no tasks processed.
 - Claude call: one retry on 5xx or rate limit, then fail that task.
-- IMAP: a mailbox that fails to connect is skipped for that run with a warning in the summary; the task still proceeds with ClickUp data only, and the fingerprint omits that mailbox so it is retried tomorrow.
+- IMAP: a mailbox that fails to connect is skipped for that run with a warning in the summary; the task still proceeds with ClickUp data only, and the fingerprint omits that mailbox so it is retried tomorrow. Known consequence: when the mailbox comes back, the hash changes and the task gets one UPDATE even if the emails held nothing new. Accepted.
 
 ## Configuration
 
@@ -167,7 +175,10 @@ lib/ros/compose.ts             Claude call, RosDocument schema, prompts
 lib/ros/render.ts              RosDocument → .docx buffer
 lib/ros/extract.ts             .docx → plain text
 lib/ros/versions.ts            find latest [ROS] attachment, next version number
-lib/ros/types.ts               RosDocument and run summary types
+lib/ros/types.ts               RosDocument, its JSON Schema, isRosDocument guard, run summary types
+lib/ros/exemplar.ts            LJBTC ROS as a RosDocument (few-shot + snapshot baseline)
+lib/ros/house-style.ts         fixed Windansea facts the model may use
+docs/ros/palm-tree-2026-10-10.md  reference transcript of the hand-made Palm Tree ROS
 lib/clickup.ts                 + uploadAttachment, postComment, setTextField, listTasksWithField, findListFieldByName
 ```
 
@@ -190,10 +201,10 @@ Manual acceptance before leaving dry-run: run against the Palm Tree task with `?
 
 ## Rollout
 
-1. Jordan creates a Text custom field named exactly `ROS Fingerprint` on the Events list and sets the env vars in Vercel, `ROS_DRY_RUN=true`.
-2. Deploy. Trigger manually with `?taskId=86bc8ujw9`. Review the emailed draft.
+1. Jordan creates a Text custom field named exactly `ROS Fingerprint` on the Events list and sets the env vars in Vercel, `ROS_DRY_RUN=true`. The hand-made Palm Tree ROS is attached to its task as `[ROS] Palm Tree Music Festival v1 — DRAFT.docx` so the acceptance test below exercises UPDATE, not CREATE.
+2. Deploy. Trigger manually with `?taskId=86bc8ujw9`. Review the emailed v2 draft: it must keep the hand-written content and list only real changes.
 3. Let the cron run in dry-run for a week; Jordan reviews each email.
-4. Set `ROS_DRY_RUN=false`. Attach the Palm Tree ROS to its task with the `[ROS]` prefix so the first live run updates it instead of creating a competing v1.
+4. Set `ROS_DRY_RUN=false`.
 5. Add `IMAP_PASS_TRENT` when available; no code change.
 
 ## Open questions
