@@ -56,7 +56,7 @@ Every morning at 7 AM Pacific (14:00 UTC) a Vercel cron looks at every Events ta
 - **File exists and nothing changed** → skipped. Change detection is a fingerprint of the inputs stored in the task's **ROS Fingerprint** text field.
 - **File exists and inputs changed** → Claude updates the existing document, keeping manual edits, adds a "What changed" section, attaches the next version and comments the changes.
 
-Set `ROS_DRY_RUN=false` to write to ClickUp; otherwise drafts are emailed to jordan@. Manual run: `GET /api/cron/ros?taskId=<id>&force=1` with `Authorization: Bearer $CRON_SECRET`.
+It writes to ClickUp by default. Set `ROS_DRY_RUN=true` to have drafts emailed to jordan@ instead. Manual run: `GET /api/cron/ros?taskId=<id>&force=1` with `Authorization: Bearer $CRON_SECRET`.
 
 ---
 
@@ -111,7 +111,7 @@ Copy for these lives in `lib/email.ts` and `lib/decal.ts`.
 | `ANTHROPIC_API_KEY` | Claude API (model `claude-opus-5-5`, structured outputs) |
 | `IMAP_PASS_TRENT` | Trent's Gmail app password, optional; Harrison's inbox reuses `SMTP_PASS` over IMAP |
 | `CLICKUP_USER_ID_TRENT` | Assigns the `[ROS]` comment to Trent (ClickUp comment assignee, which notifies him), optional |
-| `ROS_DRY_RUN` | `true` (default) emails drafts to jordan@; `false` writes to ClickUp |
+| `ROS_DRY_RUN` | Unset or `false` (default) writes to ClickUp; `true` emails drafts to jordan@ instead |
 
 One-time ClickUp setup: add a **Text** custom field named exactly `ROS Fingerprint` to the Events list. The route looks it up by name and fails fast if it is missing. The cron schedule lives in `vercel.json`; the code is under `lib/ros/` with the route at `app/api/cron/ros/route.ts`.
 

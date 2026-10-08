@@ -44,12 +44,12 @@ describe('GET /api/cron/ros', () => {
     expect(vi.mocked(runRos).mock.calls[0][1]).toEqual({ taskId: 'abc', force: true })
   })
 
-  it('defaults to dry run unless ROS_DRY_RUN=false', async () => {
+  it('writes to ClickUp by default; ROS_DRY_RUN=true switches to dry run', async () => {
     delete process.env.ROS_DRY_RUN
     await GET(new NextRequest('http://x/api/cron/ros', { headers: { authorization: 'Bearer shh' } }))
-    expect(vi.mocked(runRos).mock.calls[0][0].dryRun).toBe(true)
-    process.env.ROS_DRY_RUN = 'false'
+    expect(vi.mocked(runRos).mock.calls[0][0].dryRun).toBe(false)
+    process.env.ROS_DRY_RUN = 'true'
     await GET(new NextRequest('http://x/api/cron/ros', { headers: { authorization: 'Bearer shh' } }))
-    expect(vi.mocked(runRos).mock.calls[1][0].dryRun).toBe(false)
+    expect(vi.mocked(runRos).mock.calls[1][0].dryRun).toBe(true)
   })
 })

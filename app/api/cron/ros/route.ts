@@ -36,7 +36,8 @@ function buildDeps(): RosDeps {
   return {
     listId,
     now: () => new Date(),
-    dryRun: process.env.ROS_DRY_RUN !== 'false',
+    // Writes to ClickUp by default. ROS_DRY_RUN=true emails drafts to Jordan instead.
+    dryRun: process.env.ROS_DRY_RUN === 'true',
     timeBudgetMs: TIME_BUDGET_MS,
     trentUserId: Number.isFinite(trent) && trent > 0 ? trent : undefined,
     clickup: {
