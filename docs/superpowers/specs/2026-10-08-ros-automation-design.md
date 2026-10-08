@@ -67,7 +67,7 @@ The fingerprint is a SHA-256 over a canonical JSON of:
 - sorted email message ids of the matching messages,
 - a `ROS_SCHEMA_VERSION` constant, so a generator change forces a refresh.
 
-It is stored in a new **text custom field on the Events list named `ROS Fingerprint`**. This field must be created by hand in ClickUp once; the ClickUp API cannot create custom fields. Its id goes in env var `CLICKUP_FIELD_ROS_FINGERPRINT`. If the field is missing or the env var is unset, the route fails fast with a clear error on every run until it is fixed, rather than regenerating everything daily.
+It is stored in a new **text custom field on the Events list named `ROS Fingerprint`**. This field must be created by hand in ClickUp once; the ClickUp API cannot create custom fields. The route resolves the field id at the start of each run by listing the Events list's custom fields and matching the name exactly (`GET /list/{id}/field`). If no field with that name exists, the route fails fast with a clear error and alert on every run until it is fixed, rather than regenerating everything daily.
 
 A manually uploaded `[ROS]` file (for example the Palm Tree ROS produced on 2026-10-08) counts as the latest ROS. Because its fingerprint was never stored, the first run will treat it as changed and produce an UPDATE from its text. That is the intended way to bring a hand-made ROS under management.
 
@@ -149,7 +149,6 @@ Reading an existing ROS for UPDATE mode: unzip the `.docx` (`jszip`), extract pa
 | `CRON_SECRET` | Authenticates cron invocations |
 | `ANTHROPIC_API_KEY` | Claude API |
 | `CLICKUP_API_KEY`, `CLICKUP_LIST_ID` | Existing |
-| `CLICKUP_FIELD_ROS_FINGERPRINT` | Id of the new text field |
 | `CLICKUP_USER_ID_TRENT` | For @mention in comments, optional |
 | `SMTP_PASS` | Existing; doubles as Harrison's IMAP password |
 | `IMAP_PASS_TRENT` | Trent's app password, optional |
@@ -169,7 +168,7 @@ lib/ros/render.ts              RosDocument → .docx buffer
 lib/ros/extract.ts             .docx → plain text
 lib/ros/versions.ts            find latest [ROS] attachment, next version number
 lib/ros/types.ts               RosDocument and run summary types
-lib/clickup.ts                 + uploadAttachment, postComment, setTextField, listTasksWithField
+lib/clickup.ts                 + uploadAttachment, postComment, setTextField, listTasksWithField, findListFieldByName
 ```
 
 Each file stays under 500 lines. Public functions are typed. All external input (ClickUp payloads, email bodies, Claude output) is validated at the boundary; Claude output is validated against the schema before rendering.
@@ -191,7 +190,7 @@ Manual acceptance before leaving dry-run: run against the Palm Tree task with `?
 
 ## Rollout
 
-1. Jordan creates the `ROS Fingerprint` field and sets the env vars in Vercel, `ROS_DRY_RUN=true`.
+1. Jordan creates a Text custom field named exactly `ROS Fingerprint` on the Events list and sets the env vars in Vercel, `ROS_DRY_RUN=true`.
 2. Deploy. Trigger manually with `?taskId=86bc8ujw9`. Review the emailed draft.
 3. Let the cron run in dry-run for a week; Jordan reviews each email.
 4. Set `ROS_DRY_RUN=false`. Attach the Palm Tree ROS to its task with the `[ROS]` prefix so the first live run updates it instead of creating a competing v1.
