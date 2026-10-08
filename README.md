@@ -48,6 +48,18 @@ If any webhook or form submission fails, an alert email goes to **jordan@windans
 
 ---
 
+### 6. Daily Run of Show (ROS)
+
+Every morning at 7 AM Pacific (14:00 UTC) a Vercel cron looks at every Events task whose intake form is complete and whose event is within the next 14 days.
+
+- **No `[ROS]` file on the task** → Claude writes a Run of Show from the ClickUp fields, attachments, comments and matching emails in Harrison's (and, when configured, Trent's) inbox, renders it as a Word document in the LJBTC template layout, attaches it as `[ROS] <Event> v1 — DRAFT.docx`, and posts a `[ROS]` comment assigned to Trent with the open items.
+- **File exists and nothing changed** → skipped. Change detection is a fingerprint of the inputs stored in the task's **ROS Fingerprint** text field.
+- **File exists and inputs changed** → Claude updates the existing document, keeping manual edits, adds a "What changed" section, attaches the next version and comments the changes.
+
+Set `ROS_DRY_RUN=false` to write to ClickUp; otherwise drafts are emailed to jordan@. Manual run: `GET /api/cron/ros?taskId=<id>&force=1` with `Authorization: Bearer $CRON_SECRET`.
+
+---
+
 ## Part 2 — How it works (technical reference)
 
 ### Tech stack
@@ -76,6 +88,7 @@ If any webhook or form submission fails, an alert email goes to **jordan@windans
 | `POST /api/webhooks/square` | API | Verifies signature, filters wholesale, creates Wholesale task |
 | `POST /api/intake/[taskId]` | API | Writes intake form answers and uploads to ClickUp |
 | `POST /api/decal` | API | Validates password and order, builds PDF, emails Marcus |
+| `GET /api/cron/ros` | API | Daily ROS create/update for events in the next 14 days (cron, bearer secret) |
 
 ### Email senders
 
@@ -89,6 +102,18 @@ All mail goes out through Gmail SMTP as `harrison@windanseacoconuts.com` using `
 | Error alert | jordan@windanseacoconuts.com | — | — |
 
 Copy for these lives in `lib/email.ts` and `lib/decal.ts`.
+
+### ROS cron environment
+
+| Env var | Purpose |
+|---|---|
+| `CRON_SECRET` | Vercel sends it as a bearer token on scheduled runs |
+| `ANTHROPIC_API_KEY` | Claude API (model `claude-opus-5-5`, structured outputs) |
+| `IMAP_PASS_TRENT` | Trent's Gmail app password, optional; Harrison's inbox reuses `SMTP_PASS` over IMAP |
+| `CLICKUP_USER_ID_TRENT` | Assigns the `[ROS]` comment to Trent (ClickUp comment assignee, which notifies him), optional |
+| `ROS_DRY_RUN` | `true` (default) emails drafts to jordan@; `false` writes to ClickUp |
+
+One-time ClickUp setup: add a **Text** custom field named exactly `ROS Fingerprint` to the Events list. The route looks it up by name and fails fast if it is missing. The cron schedule lives in `vercel.json`; the code is under `lib/ros/` with the route at `app/api/cron/ros/route.ts`.
 
 ### ClickUp
 
