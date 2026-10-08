@@ -29,6 +29,10 @@ describe('versions', () => {
     expect(rosFilename('Palm Tree Music Festival', 2)).toBe('[ROS] Palm Tree Music Festival v2.docx')
     expect(rosFilename('Smith / Wedding: "Big" Day', 1)).toBe('[ROS] Smith - Wedding- Big Day v1.docx')
   })
+  it('keeps filenames ASCII for the v3 upload endpoint', () => {
+    expect(rosFilename('TEST — ROS Demo Offsite (delete me)', 3)).toBe('[ROS] TEST - ROS Demo Offsite (delete me) v3.docx')
+    expect(rosFilename('Café Núñez Fiesta – Año Nuevo', 1)).toBe('[ROS] Cafe Nunez Fiesta - Ano Nuevo v1.docx')
+  })
   it('reads the files linked in the ROS custom field', () => {
     const task: ClickUpTask = {
       id: 't',

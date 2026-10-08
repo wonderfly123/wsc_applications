@@ -26,9 +26,17 @@ export function nextRosVersion(attachments: ClickUpAttachment[]): number {
   return max + 1
 }
 
-/** `[ROS] <task name> vN.docx`, with filesystem-hostile characters removed. */
+/**
+ * `[ROS] <task name> vN.docx`. ASCII only: ClickUp's v3 attachments endpoint
+ * garbles non-ASCII filenames (an em dash arrives as "â\x80\x94"), so dashes
+ * are normalised and accents stripped before upload.
+ */
 export function rosFilename(taskName: string, version: number): string {
   const safe = taskName
+    .replace(/[‒-―−]/g, '-') // figure/en/em/horizontal-bar dashes, minus sign
+    .normalize('NFKD')
+    .replace(/[̀-ͯ]/g, '') // combining accents left by NFKD
+    .replace(/[^\x20-\x7e]/g, '') // anything else outside printable ASCII
     .replace(/[\\/:]/g, '-')
     .replace(/["*?<>|]/g, '')
     .replace(/\s+/g, ' ')
