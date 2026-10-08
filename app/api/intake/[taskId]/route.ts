@@ -1,26 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { updateTaskFields, fetchDropdownOptionIds } from '@/lib/clickup'
+import { updateTaskFields, fetchDropdownOptionIds, uploadAttachment } from '@/lib/clickup'
 import { INTAKE_FIELDS, UPLOAD_FIELDS, INTAKE_COMPLETE_FIELD_ID, toUtcEpoch, validateUploadSize, validateUploadTotal } from '@/lib/intake-fields'
 import { sendErrorAlert } from '@/lib/email'
 import { normalizePhone } from '@/lib/phone'
-
-async function uploadAttachment(taskId: string, file: File) {
-  const apiKey = process.env.CLICKUP_API_KEY
-  if (!apiKey) throw new Error('CLICKUP_API_KEY not set')
-
-  const formData = new FormData()
-  formData.append('attachment', file, file.name)
-
-  const res = await fetch(`https://api.clickup.com/api/v2/task/${taskId}/attachment`, {
-    method: 'POST',
-    headers: { Authorization: apiKey },
-    body: formData,
-  })
-
-  if (!res.ok) {
-    throw new Error(`ClickUp attachment upload failed: ${res.status}`)
-  }
-}
 
 // Replace raw ClickUp field IDs in an error message with the field's label
 // so alert emails read "Phone (2d0cc4d7…)" instead of a bare UUID.
