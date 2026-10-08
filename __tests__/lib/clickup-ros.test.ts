@@ -40,6 +40,25 @@ describe('clickup ROS helpers', () => {
     expect(fetchMock.mock.calls[1][0]).toContain('page=1')
   })
 
+  it('retries once on a 5xx and then succeeds; does not retry 4xx', async () => {
+    vi.useFakeTimers()
+    try {
+      fetchMock.mockResolvedValueOnce(json({ ECODE: 'SHARD_PROXY_ON_ERR' }, false, 500))
+      fetchMock.mockResolvedValueOnce(json({ id: 't', name: 'Recovered', custom_fields: [] }))
+      const p = fetchRawTask('t')
+      await vi.runAllTimersAsync()
+      expect((await p).name).toBe('Recovered')
+      expect(fetchMock).toHaveBeenCalledTimes(2)
+
+      fetchMock.mockResolvedValueOnce(json({ err: 'nope' }, false, 404))
+      const p2 = fetchRawTask('missing')
+      await expect(p2).rejects.toThrow(/404/)
+      expect(fetchMock).toHaveBeenCalledTimes(3)
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
   it('fetchRawTask and fetchTaskComments hit the task endpoints', async () => {
     fetchMock.mockResolvedValueOnce(json({ id: 't', name: 'T', custom_fields: [], attachments: [] }))
     expect((await fetchRawTask('t')).name).toBe('T')

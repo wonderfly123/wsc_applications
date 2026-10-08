@@ -119,21 +119,26 @@ export interface MailSearchResult {
   failedMailboxes: string[]
 }
 
-/** Search every configured mailbox; a failing mailbox is reported, not fatal. */
+/**
+ * Search every configured mailbox in parallel (one IMAP round trip is ~15 s,
+ * so serial searches would eat the cron's time budget). A failing mailbox is
+ * reported, not fatal.
+ */
 export async function searchAllMailboxes(
   opts: { clientEmail: string; titles: string[]; since: Date },
   mailboxes: MailboxCreds[] = configuredMailboxes(),
   factory: ImapFactory = defaultFactory
 ): Promise<MailSearchResult> {
+  const results = await Promise.allSettled(mailboxes.map((mb) => searchMailbox({ ...mb, ...opts }, factory)))
   const excerpts: MailExcerpt[] = []
   const failedMailboxes: string[] = []
-  for (const mb of mailboxes) {
-    try {
-      excerpts.push(...(await searchMailbox({ ...mb, ...opts }, factory)))
-    } catch (err) {
-      console.warn(`Mailbox ${mb.user} failed:`, err)
-      failedMailboxes.push(mb.user)
+  results.forEach((r, i) => {
+    if (r.status === 'fulfilled') excerpts.push(...r.value)
+    else {
+      console.warn(`Mailbox ${mailboxes[i].user} failed:`, r.reason)
+      failedMailboxes.push(mailboxes[i].user)
     }
-  }
+  })
+  excerpts.sort((a, b) => (a.date < b.date ? 1 : -1))
   return { excerpts, failedMailboxes }
 }

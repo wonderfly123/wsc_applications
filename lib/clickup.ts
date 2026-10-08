@@ -339,17 +339,28 @@ function apiKey(): string {
   return key
 }
 
+const RETRY_DELAY_MS = 1500
+
+/**
+ * JSON request to ClickUp. A 5xx (ClickUp's shard proxy throws these now and
+ * then) is retried once after a short pause; 4xx fails immediately.
+ */
 async function clickupJson<T>(url: string, init: RequestInit = {}): Promise<T> {
-  const res = await fetch(url, {
-    ...init,
-    headers: { Authorization: apiKey(), ...(init.headers ?? {}) },
-    next: { revalidate: 0 },
-  } as RequestInit)
-  if (!res.ok) {
+  for (let attempt = 0; ; attempt++) {
+    const res = await fetch(url, {
+      ...init,
+      headers: { Authorization: apiKey(), ...(init.headers ?? {}) },
+      next: { revalidate: 0 },
+    } as RequestInit)
+    if (res.ok) return res.json() as Promise<T>
     const body = await res.text().catch(() => '')
+    if (res.status >= 500 && attempt === 0) {
+      console.warn(`ClickUp ${res.status} on ${url}, retrying once`)
+      await new Promise((r) => setTimeout(r, RETRY_DELAY_MS))
+      continue
+    }
     throw new Error(`ClickUp ${init.method ?? 'GET'} ${url} failed: ${res.status} ${body.slice(0, 200)}`.trim())
   }
-  return res.json() as Promise<T>
 }
 
 /** Every open task in a list (subtasks excluded), following pagination. */
