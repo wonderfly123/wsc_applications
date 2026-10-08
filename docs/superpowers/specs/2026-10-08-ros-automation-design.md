@@ -1,7 +1,7 @@
 # Run of Show (ROS) Automation — Design
 
 **Date:** 2026-10-08
-**Status:** Draft for review
+**Status:** Approved 2026-10-08 (spec review passed, second pass)
 **Owner:** Jordan
 
 ## Goal
@@ -33,7 +33,7 @@ A task is a candidate when all of the following hold:
 3. Its **event date** is between today and today + 14 days, Pacific time. Event date is the **Service Start Date and Time** field (`f6483054-…`), falling back to the task **start date**, then the task **due date**. Tasks with none of these are skipped and reported in the run summary.
 4. The task is not closed.
 
-Selection uses the ClickUp "get tasks in list" endpoint (open tasks, with custom fields and subtasks excluded), follows pagination until exhausted, then applies the Intake Form Complete and date-window checks in code. Candidates are processed in **event date ascending** order so the time budget never starves the soonest events.
+Selection uses the ClickUp "get tasks in list" endpoint (closed tasks and subtasks excluded; custom fields come back in the response), follows pagination until exhausted, then applies the Intake Form Complete and date-window checks in code. Candidates are processed in **event date ascending** order so the time budget never starves the soonest events.
 
 ## Per-task flow
 
@@ -106,9 +106,9 @@ Prompt inputs: the task fields (resolved dropdown names, Pacific-formatted dates
 
 **Exemplar and house style, checked into the repo as a prerequisite task:**
 
-- `lib/ros/exemplar.ts` exports the LJBTC End of Summer Luau ROS (2026-10-09) as a `RosDocument` constant. It is the few-shot example in the prompt, the render snapshot baseline in tests, and the structural template. Its content comes from the Word file on Jordan's Desktop (`2_LJBTC_End_of_Summer_Luau_ROS_Oct9 (1).docx`), transcribed during implementation.
+- `lib/ros/exemplar.ts` exports the LJBTC End of Summer Luau ROS (2026-10-09) as a `RosDocument` constant. It is the few-shot example in the prompt, the render snapshot baseline in tests, and the structural template. Its content comes from `docs/ros/reference/template-ljbtc-2026-10-09.docx`, transcribed during implementation.
 - `lib/ros/house-style.ts` exports the fixed Windansea facts the model may use without them appearing in the inputs: warehouse address (9040 Kenamar Dr, Unit 403, San Diego), the standard post-event steps (add hours to the 2026 Timesheet; confirm final payment, follow up on invoice), the Windansea contact line (Trent LiVolsi, 732-575-5774), the standard packing list by category (coconuts and service items, tools, display and setup, cleaning and safety, team), and the package definitions (Sandcastle delivery only; Cabana delivery plus live service; Villa full service and brand activation). Anything not in this file or the inputs is an open item.
-- `docs/ros/palm-tree-2026-10-10.md` holds the text of the Palm Tree ROS produced by hand on 2026-10-08, as a second worked example for the implementer. It is reference only and is not sent to the model.
+- `docs/ros/reference/` holds the durable sources: `template-ljbtc-2026-10-09.docx` (the template), `palm-tree-2026-10-10.docx` (the ROS produced by hand on 2026-10-08, also the file Rollout step 1 uploads), `palm-tree-generator.js` (the docx-js generator that produced it; `lib/ros/render.ts` is a port of this file), and `olukai-logo.png`. Reference only; none of it is sent to the model.
 
 Rules given to the model:
 
@@ -119,7 +119,7 @@ Rules given to the model:
 
 ## Rendering
 
-`lib/ros/render.ts` turns a `RosDocument` into a `.docx` using the `docx` npm package, reproducing the template: US Letter, Times New Roman, 20 pt title, blue (`3D72B8`) 13 pt subtitle with bottom rule, borderless info table with a bordered stamp box and the client stamp logo (the `[STAMP LOGO]` attachment, downloaded and placed inline under the box; omitted if absent), 11 pt body, blue section headers, 11.5 pt time headers, bullet lists, a two-column breakdown table with grey rules. This is a port of the generator used for the Palm Tree ROS on 2026-10-08.
+`lib/ros/render.ts` turns a `RosDocument` into a `.docx` using the `docx` npm package, reproducing the template: US Letter, Times New Roman, 20 pt title, blue (`3D72B8`) 13 pt subtitle with bottom rule, borderless info table with a bordered stamp box and the client stamp logo (the `[STAMP LOGO]` attachment, downloaded and placed inline under the box; omitted if absent), 11 pt body, blue section headers, 11.5 pt time headers, bullet lists, a two-column breakdown table with grey rules. This is a port of `docs/ros/reference/palm-tree-generator.js`.
 
 Filename: `[ROS] <task name> v<N> — DRAFT.docx`, where N is one more than the highest `v<N>` found among existing `[ROS]` attachments (1 when none parse).
 
@@ -178,8 +178,8 @@ lib/ros/versions.ts            find latest [ROS] attachment, next version number
 lib/ros/types.ts               RosDocument, its JSON Schema, isRosDocument guard, run summary types
 lib/ros/exemplar.ts            LJBTC ROS as a RosDocument (few-shot + snapshot baseline)
 lib/ros/house-style.ts         fixed Windansea facts the model may use
-docs/ros/palm-tree-2026-10-10.md  reference transcript of the hand-made Palm Tree ROS
-lib/clickup.ts                 + uploadAttachment, postComment, setTextField, listTasksWithField, findListFieldByName
+docs/ros/reference/            template .docx, Palm Tree .docx, original generator, logo (reference only)
+lib/clickup.ts                 + uploadAttachment, postComment, setTextField, listOpenTasks, findListFieldByName
 ```
 
 Each file stays under 500 lines. Public functions are typed. All external input (ClickUp payloads, email bodies, Claude output) is validated at the boundary; Claude output is validated against the schema before rendering.
@@ -189,7 +189,7 @@ Each file stays under 500 lines. Public functions are typed. All external input 
 Vitest, matching the existing suite.
 
 - `select`: window edges (today, day 14, day 15), fallback order of date fields, closed tasks excluded, missing dates reported.
-- `fingerprint`: stable across key order; changes when any field, attachment, comment, or message id changes; changes when `ROS_SCHEMA_VERSION` changes.
+- `fingerprint`: stable across key order; changes when any field, attachment, comment, or message id changes; changes when `ROS_SCHEMA_VERSION` changes; **unchanged** when a `[ROS]`-prefixed attachment or comment is added or when the `ROS Fingerprint` field value changes (the regression test for the self-invalidation bug).
 - `versions`: parses `v3` from titles, ignores non-`[ROS]` files, returns 1 when none.
 - `extract`: round-trips a document produced by `render`.
 - `render`: produces a valid zip with the expected headings and the stamp image when provided; snapshot of extracted text.
