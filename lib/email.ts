@@ -141,3 +141,30 @@ export async function sendDecalOrderEmail(params: {
     attachments: params.attachments,
   })
 }
+
+/**
+ * Dry-run delivery for the ROS cron: the generated file goes to Jordan instead
+ * of ClickUp, with the comment that would have been posted.
+ */
+export async function sendRosDraftEmail(params: {
+  taskName: string
+  taskUrl: string
+  filename: string
+  content: Buffer
+  comment: string
+}) {
+  const transporter = getTransporter()
+  await transporter.sendMail({
+    from: `WSC ROS Bot <${SMTP_USER}>`,
+    to: ALERT_EMAIL,
+    subject: `[ROS dry run] ${params.taskName}`,
+    text: `${params.comment}\n\nTask: ${params.taskUrl}\n\nThis is a dry run. Nothing was written to ClickUp.`,
+    attachments: [
+      {
+        filename: params.filename,
+        content: params.content,
+        contentType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      },
+    ],
+  })
+}
