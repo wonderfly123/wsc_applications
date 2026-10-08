@@ -1,5 +1,6 @@
 import { BEOData, BEOAttachment, FIELD_MAP, ATTACHMENT_FIELDS } from './types'
 import { INTAKE_FIELDS, TIMEZONE_MAP, fromUtcEpoch, formatForDisplay } from './intake-fields'
+import type { ClickUpTask, ClickUpComment } from './ros/types'
 
 interface ClickUpCustomField {
   id: string
@@ -326,4 +327,158 @@ export async function fetchTask(taskId: string): Promise<BEOData | null> {
   }
 
   return data
+}
+
+// ---- Run of Show automation helpers ----
+
+const CLICKUP = 'https://api.clickup.com/api/v2'
+
+function apiKey(): string {
+  const key = process.env.CLICKUP_API_KEY
+  if (!key) throw new Error('CLICKUP_API_KEY not set')
+  return key
+}
+
+const RETRY_DELAY_MS = 1500
+
+/**
+ * JSON request to ClickUp. A 5xx (ClickUp's shard proxy throws these now and
+ * then) is retried once after a short pause; 4xx fails immediately.
+ */
+async function clickupJson<T>(url: string, init: RequestInit = {}): Promise<T> {
+  for (let attempt = 0; ; attempt++) {
+    const res = await fetch(url, {
+      ...init,
+      headers: { Authorization: apiKey(), ...(init.headers ?? {}) },
+      next: { revalidate: 0 },
+    } as RequestInit)
+    if (res.ok) return res.json() as Promise<T>
+    const body = await res.text().catch(() => '')
+    if (res.status >= 500 && attempt === 0) {
+      console.warn(`ClickUp ${res.status} on ${url}, retrying once`)
+      await new Promise((r) => setTimeout(r, RETRY_DELAY_MS))
+      continue
+    }
+    throw new Error(`ClickUp ${init.method ?? 'GET'} ${url} failed: ${res.status} ${body.slice(0, 200)}`.trim())
+  }
+}
+
+/** Every open task in a list (subtasks excluded), following pagination. */
+export async function listOpenTasks(listId: string): Promise<ClickUpTask[]> {
+  const all: ClickUpTask[] = []
+  for (let page = 0; page < 50; page++) {
+    const data = await clickupJson<{ tasks?: ClickUpTask[]; last_page?: boolean }>(
+      `${CLICKUP}/list/${listId}/task?page=${page}&include_closed=false&subtasks=false&order_by=due_date`
+    )
+    all.push(...(data.tasks ?? []))
+    if (data.last_page || !data.tasks?.length) break
+  }
+  return all
+}
+
+export function fetchRawTask(taskId: string): Promise<ClickUpTask> {
+  return clickupJson<ClickUpTask>(`${CLICKUP}/task/${taskId}?custom_task_ids=false&include_subtasks=false`)
+}
+
+export async function fetchTaskComments(taskId: string): Promise<ClickUpComment[]> {
+  const data = await clickupJson<{ comments?: ClickUpComment[] }>(`${CLICKUP}/task/${taskId}/comment`)
+  return data.comments ?? []
+}
+
+/** A list's custom field by exact name, or null. */
+export async function findListFieldByName(
+  listId: string,
+  name: string
+): Promise<{ id: string; name: string; type: string } | null> {
+  const data = await clickupJson<{ fields?: Array<{ id: string; name: string; type: string }> }>(
+    `${CLICKUP}/list/${listId}/field`
+  )
+  const f = (data.fields ?? []).find((x) => x.name === name)
+  return f ? { id: f.id, name: f.name, type: f.type } : null
+}
+
+/** Upload a file to a task. Accepts a browser File (intake form) or a Buffer plus filename (ROS cron). */
+export async function uploadAttachment(
+  taskId: string,
+  content: Buffer | Uint8Array | File,
+  filename?: string,
+  mimetype?: string
+): Promise<void> {
+  const formData = new FormData()
+  const file =
+    content instanceof File
+      ? content
+      : new File([Uint8Array.from(content)], filename ?? 'attachment', { type: mimetype ?? 'application/octet-stream' })
+  formData.append('attachment', file, file.name)
+  const res = await fetch(`${CLICKUP}/task/${taskId}/attachment`, {
+    method: 'POST',
+    headers: { Authorization: apiKey() },
+    body: formData,
+  })
+  if (!res.ok) throw new Error(`ClickUp attachment upload failed: ${res.status}`)
+}
+
+/** Post a comment. `assignee` (ClickUp user id) assigns the comment to that person, which notifies them. */
+export async function postComment(taskId: string, text: string, assignee?: number): Promise<void> {
+  const body: Record<string, unknown> = { comment_text: text, notify_all: false }
+  if (assignee) body.assignee = assignee
+  await clickupJson(`${CLICKUP}/task/${taskId}/comment`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  })
+}
+
+export async function setTextField(taskId: string, fieldId: string, value: string): Promise<void> {
+  await clickupJson(`${CLICKUP}/task/${taskId}/field/${fieldId}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ value }),
+  })
+}
+
+/** Download an attachment by URL (ClickUp attachment URLs accept the API key header). */
+export async function downloadAttachment(url: string): Promise<Buffer> {
+  const res = await fetch(url, { headers: { Authorization: apiKey() } })
+  if (!res.ok) throw new Error(`Attachment download failed: ${res.status}`)
+  return Buffer.from(await res.arrayBuffer())
+}
+
+/**
+ * Upload a file into a Files (attachment) custom field via the v3 attachments
+ * endpoint. Returns the attachment id, which must then be linked to a task
+ * with setFilesFieldValue. Generic task attachments cannot be used here
+ * (ClickUp rejects them with FIELD_250).
+ */
+export async function uploadToFilesField(
+  workspaceId: string,
+  fieldId: string,
+  content: Buffer | Uint8Array,
+  filename: string,
+  mimetype = 'application/octet-stream'
+): Promise<string> {
+  const formData = new FormData()
+  formData.append('attachment', new File([Uint8Array.from(content)], filename, { type: mimetype }), filename)
+  const res = await fetch(`https://api.clickup.com/api/v3/workspaces/${workspaceId}/custom_fields/${fieldId}/attachments`, {
+    method: 'POST',
+    headers: { Authorization: apiKey() },
+    body: formData,
+  })
+  if (!res.ok) throw new Error(`ClickUp files-field upload failed: ${res.status} ${(await res.text().catch(() => '')).slice(0, 200)}`)
+  const data = (await res.json()) as { id?: string }
+  if (!data.id) throw new Error('ClickUp files-field upload returned no id')
+  return data.id
+}
+
+/** Link and unlink attachment ids on a task's Files custom field. Removed files disappear from the task. */
+export async function setFilesFieldValue(
+  taskId: string,
+  fieldId: string,
+  value: { add?: string[]; rem?: string[] }
+): Promise<void> {
+  await clickupJson(`${CLICKUP}/task/${taskId}/field/${fieldId}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ value }),
+  })
 }
