@@ -481,11 +481,36 @@ export async function extractDocxText(docx: Buffer | Uint8Array): Promise<string
   const lines: string[] = []
   const paraText = (p: string) => decode((p.match(/<w:t[^>]*>([^<]*)<\/w:t>/g) ?? []).map((t) => t.replace(/<[^>]+>/g, '')).join(''))
 
-  // Walk top-level tables and paragraphs in order.
-  const re = /<w:tbl>[\s\S]*?<\/w:tbl>|<w:p\b[\s\S]*?<\/w:p>/g
-  let m: RegExpExecArray | null
-  while ((m = re.exec(body))) {
-    const chunk = m[0]
+  // Walk top-level tables and paragraphs in order. Tables can nest (the stamp
+  // box sits inside the info table), so find a table's end by depth, not by
+  // the first closing tag.
+  const chunks: string[] = []
+  let i = 0
+  while (i < body.length) {
+    const tbl = body.indexOf('<w:tbl>', i)
+    const par = body.search(/<w:p\b/) === -1 ? -1 : body.slice(i).search(/<w:p\b/)
+    const parAbs = par === -1 ? -1 : i + par
+    if (tbl === -1 && parAbs === -1) break
+    if (tbl !== -1 && (parAbs === -1 || tbl < parAbs)) {
+      let depth = 0
+      let j = tbl
+      const tagRe = /<w:tbl>|<\/w:tbl>/g
+      tagRe.lastIndex = tbl
+      let t: RegExpExecArray | null
+      while ((t = tagRe.exec(body))) {
+        depth += t[0] === '<w:tbl>' ? 1 : -1
+        if (depth === 0) { j = t.index + t[0].length; break }
+      }
+      chunks.push(body.slice(tbl, j))
+      i = j
+    } else {
+      const end = body.indexOf('</w:p>', parAbs)
+      if (end === -1) break
+      chunks.push(body.slice(parAbs, end + 6))
+      i = end + 6
+    }
+  }
+  for (const chunk of chunks) {
     if (chunk.startsWith('<w:tbl>')) {
       for (const tr of chunk.match(/<w:tr\b[\s\S]*?<\/w:tr>/g) ?? []) {
         const cells = (tr.match(/<w:tc>[\s\S]*?<\/w:tc>/g) ?? []).map((tc) =>
@@ -1117,9 +1142,16 @@ Expected: FAIL, exports missing.
 
 - [ ] **Step 3: Append helpers to lib/clickup.ts**
 
+Add this import at the **top** of `lib/clickup.ts`, next to the existing imports:
+
+```ts
+import type { ClickUpTask, ClickUpComment } from './ros/types'
+```
+
+Then append at the end of the file:
+
 ```ts
 // ---- Run of Show automation helpers ----
-import type { ClickUpTask, ClickUpComment } from './ros/types'
 
 const CLICKUP = 'https://api.clickup.com/api/v2'
 
@@ -1169,7 +1201,7 @@ export async function findListFieldByName(listId: string, name: string): Promise
 
 export async function uploadAttachment(taskId: string, content: Buffer | Uint8Array | File, filename?: string, mimetype?: string): Promise<void> {
   const formData = new FormData()
-  const file = content instanceof File ? content : new File([content], filename ?? 'attachment', { type: mimetype ?? 'application/octet-stream' })
+  const file = content instanceof File ? content : new File([Uint8Array.from(content)], filename ?? 'attachment', { type: mimetype ?? 'application/octet-stream' })
   formData.append('attachment', file, file.name)
   const res = await fetch(`${CLICKUP}/task/${taskId}/attachment`, { method: 'POST', headers: { Authorization: apiKey() }, body: formData })
   if (!res.ok) throw new Error(`ClickUp attachment upload failed: ${res.status}`)
@@ -1265,7 +1297,7 @@ describe('searchMailbox', () => {
       getMailboxLock: vi.fn(async () => ({ release: vi.fn() })),
       search: vi.fn(async () => uids),
       fetch: async function* (range: number[]) {
-        for (const uid of range) yield { uid, envelope: { messageId: `<m${uid}@x>`, date: new Date(2026, 9, uid % 28), subject: `S${uid}`, from: [{ address: 'rj@olukai.com' }], to: [{ address: 'harrison@windanseacoconuts.com' }] }, source: Buffer.from(`Subject: S${uid}\r\n\r\nBody ${uid}\r\n`) }
+        for (const uid of range) yield { uid, envelope: { messageId: `<m${uid}@x>`, date: new Date(Date.UTC(2026, 0, 1) + uid * 86_400_000), subject: `S${uid}`, from: [{ address: 'rj@olukai.com' }], to: [{ address: 'harrison@windanseacoconuts.com' }] }, source: Buffer.from(`Subject: S${uid}\r\n\r\nBody ${uid}\r\n`) }
       },
       logout: vi.fn(async () => {}),
     }
@@ -1730,11 +1762,20 @@ describe('runRos', () => {
     expect(String(deps.calls.comment[0][1])).toContain('Something changed')
   })
 
-  it('force bypasses SKIP; taskId processes one task regardless of window', async () => {
+  it('taskId processes one task regardless of window', async () => {
     const far = mkTask('far', { start_date: String(NOW.getTime() + 60 * DAY) })
     const deps = mkDeps([far])
     expect((await runRos(deps)).considered).toBe(0)
     expect((await runRos(deps, { taskId: 'far' })).created).toBe(1)
+  })
+
+  it('force bypasses SKIP when the stored fingerprint matches', async () => {
+    const t = mkTask('a', { attachments: [{ id: 'r', title: '[ROS] Event a v1 — DRAFT.docx', url: 'u', date: '1' }] })
+    const fp = computeFingerprint({ task: t, comments: [], messageIds: [], fingerprintFieldId: FP })
+    t.custom_fields = t.custom_fields.map((f) => (f.id === FP ? { ...f, value: fp } : f))
+    const deps = mkDeps([t])
+    expect((await runRos(deps)).skipped).toBe(1)
+    expect((await runRos(deps, { taskId: 'a', force: true })).updated).toBe(1)
   })
 
   it('dry run emails the file and writes nothing to ClickUp', async () => {
@@ -1845,8 +1886,11 @@ export function summarizeFields(task: ClickUpTask): Record<string, string> {
   return out
 }
 
-const fieldValue = (task: ClickUpTask, name: string): string => {
-  const f = task.custom_fields?.find((x) => x.name === name)
+const CLIENT_EMAIL_FIELD_ID = 'a4316b37-4646-4db8-93d7-c37561d17a77'
+const DEAL_TITLE_FIELD_ID = '9d8e3b50-556e-4039-8062-7a2bb4ac4fee'
+
+const fieldValue = (task: ClickUpTask, fieldId: string): string => {
+  const f = task.custom_fields?.find((x) => x.id === fieldId)
   return typeof f?.value === 'string' ? f.value : ''
 }
 
@@ -1882,7 +1926,7 @@ export async function processTask(
   const task = await deps.clickup.fetchRawTask(taskId)
   const comments = await deps.clickup.fetchTaskComments(taskId)
   const since = new Date(Number(task.date_created ?? deps.now().getTime() - 90 * 86_400_000))
-  const mail = await deps.searchMail({ clientEmail: fieldValue(task, 'Client Email'), titles: [task.name, fieldValue(task, 'Pipedrive Deal Title')], since })
+  const mail = await deps.searchMail({ clientEmail: fieldValue(task, CLIENT_EMAIL_FIELD_ID), titles: [task.name, fieldValue(task, DEAL_TITLE_FIELD_ID)], since })
   for (const mb of mail.failedMailboxes) warnings.push(`${taskId}: mailbox ${mb} unavailable, used ClickUp data only`)
 
   const fingerprint = computeFingerprint({ task, comments, messageIds: mail.excerpts.map((e) => e.messageId), fingerprintFieldId })
@@ -1946,7 +1990,7 @@ Note the `summary[outcome]++` relies on `TaskOutcome` values matching `RunSummar
 - [ ] **Step 4: Run test to verify it passes**
 
 Run: `npx vitest run __tests__/lib/ros/run.test.ts`
-Expected: PASS (9 tests). The deferral test depends on `now()` advancing by 1 s per call with a 1 ms budget; the first task starts because the check happens before `now()` advances past the budget. If it flakes, make the first `now()` call return `NOW` exactly by starting `t` at `NOW - 1000`.
+Expected: PASS (10 tests). In the deferral test `now()` advances 1 s per call against a 1 ms budget, so the very first budget check already sees elapsed time and both tasks are deferred (`deferred: 2, created: 0`). The assertion `created + deferred === 2` holds either way; it is not a flake.
 
 - [ ] **Step 5: Commit**
 
@@ -2146,7 +2190,7 @@ New subsection:
 | `CRON_SECRET` | Vercel sends it as a bearer token on scheduled runs |
 | `ANTHROPIC_API_KEY` | Claude API (model `claude-opus-5-5`) |
 | `IMAP_PASS_TRENT` | Trent's Gmail app password, optional; Harrison's inbox reuses `SMTP_PASS` |
-| `CLICKUP_USER_ID_TRENT` | Assigns the review comment to Trent, optional |
+| `CLICKUP_USER_ID_TRENT` | Assigns the `[ROS]` comment to Trent (ClickUp comment assignee, which notifies him), optional |
 | `ROS_DRY_RUN` | `true` (default) emails drafts to jordan@; `false` writes to ClickUp |
 
 One-time ClickUp setup: add a **Text** custom field named exactly `ROS Fingerprint` to the Events list. The route looks it up by name and fails fast if it is missing.
