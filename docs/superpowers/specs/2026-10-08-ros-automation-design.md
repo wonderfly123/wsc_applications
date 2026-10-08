@@ -83,7 +83,7 @@ A manually uploaded `[ROS]` file (for example the Palm Tree ROS produced on 2026
 
 ## ROS composition (Claude API)
 
-Model: `claude-sonnet-5-5`, set in one constant. One call per CREATE or UPDATE. Output is constrained to a JSON schema (`RosDocument`) via a single forced tool call, so rendering never depends on free text. The tool's `input_schema` is hand-written JSON Schema in `lib/ros/types.ts`, and the response is checked by a hand-rolled type guard (`isRosDocument`) before rendering; no schema library is added.
+Model: `claude-opus-5-5`, set in one constant (the current default Claude model; forced tool calls are not supported on it, so structured outputs are used instead). One call per CREATE or UPDATE through `client.messages.parse` with `output_config.format` built from a Zod schema (`RosDocumentSchema` in `lib/ros/types.ts`), so rendering never depends on free text. Zod is the single source of truth: the TypeScript type is inferred from it and the SDK validates the response against it; `parsed_output` is null on failure, which fails the task. A `refusal` stop reason also fails the task. The SDK's built-in retries (two, on 429 and 5xx) cover the retry requirement.
 
 ```ts
 interface RosDocument {
@@ -147,7 +147,7 @@ Reading an existing ROS for UPDATE mode: unzip the `.docx` (`jszip`), extract pa
 
 - Per-task failures: caught, appended to `failed`, one alert email per run listing all failures via the existing `sendErrorAlert`.
 - Fatal setup failures (missing fingerprint field, missing API key): 500, alert email, no tasks processed.
-- Claude call: one retry on 5xx or rate limit, then fail that task.
+- Claude call: the SDK retries 429 and 5xx twice by default, then the task fails.
 - IMAP: a mailbox that fails to connect is skipped for that run with a warning in the summary; the task still proceeds with ClickUp data only, and the fingerprint omits that mailbox so it is retried tomorrow. Known consequence: when the mailbox comes back, the hash changes and the task gets one UPDATE even if the emails held nothing new. Accepted.
 
 ## Configuration
@@ -162,7 +162,7 @@ Reading an existing ROS for UPDATE mode: unzip the `.docx` (`jszip`), extract pa
 | `IMAP_PASS_TRENT` | Trent's app password, optional |
 | `ROS_DRY_RUN` | `true` (default) or `false` |
 
-New dependencies: `@anthropic-ai/sdk`, `docx`, `imapflow`, `jszip`.
+New dependencies: `@anthropic-ai/sdk`, `zod`, `docx`, `imapflow`, `mailparser`, `jszip`.
 
 ## Module layout
 
@@ -175,7 +175,7 @@ lib/ros/compose.ts             Claude call, RosDocument schema, prompts
 lib/ros/render.ts              RosDocument → .docx buffer
 lib/ros/extract.ts             .docx → plain text
 lib/ros/versions.ts            find latest [ROS] attachment, next version number
-lib/ros/types.ts               RosDocument, its JSON Schema, isRosDocument guard, run summary types
+lib/ros/types.ts               RosDocumentSchema (Zod), inferred RosDocument type, ClickUp raw types, run summary types
 lib/ros/exemplar.ts            LJBTC ROS as a RosDocument (few-shot + snapshot baseline)
 lib/ros/house-style.ts         fixed Windansea facts the model may use
 docs/ros/reference/            template .docx, Palm Tree .docx, original generator, logo (reference only)
