@@ -50,13 +50,25 @@ If any webhook or form submission fails, an alert email goes to **jordan@windans
 
 ### 6. Daily Run of Show (ROS)
 
-Every morning at 7 AM Pacific (14:00 UTC) a Vercel cron looks at every Events task whose intake form is complete and whose event is within the next 14 days.
+Every morning at 7 AM Pacific a cron writes or refreshes the Run of Show for every confirmed event in the next 14 days, so the crew always has a current one-page plan on the ClickUp task.
 
-- **ROS field is empty** → Claude writes a Run of Show from the ClickUp fields, attachments, comments and matching emails in Harrison's (and, when configured, Trent's) inbox, renders it as a Word document in the LJBTC template layout, puts it in the task's **ROS** Files field as `[ROS] <Event> v1.docx`, and posts a `[ROS]` comment with the open items.
-- **File exists and nothing changed** → skipped. Change detection is a fingerprint of the inputs stored in the task's **ROS Fingerprint** text field.
-- **File exists and inputs changed** → Claude updates the existing document, keeping manual edits, adds a "What changed" section, replaces the file in the ROS field with the next version (the previous version is removed from the task) and comments the changes.
+**Which tasks it touches.** Events-list tasks where **Intake Form Complete** is Yes and the event date (Service Start, else task start, else due date) falls within the next 14 days. Nothing else is ever read or written.
 
-It writes to ClickUp by default. Set `ROS_DRY_RUN=true` to have drafts emailed to jordan@ instead. Manual run: `GET /api/cron/ros?taskId=<id>&force=1` with `Authorization: Bearer $CRON_SECRET`.
+**What it does per task.**
+
+- **No ROS yet** → Claude writes one from the task's custom fields, attachments, comments and any matching email threads in Harrison's inbox, renders it as a Word document in the LJBTC template layout, and puts it in the task's **ROS** field as `[ROS] <Event> v1.docx`. It posts a `[ROS]` comment listing the open items it could not confirm.
+- **ROS exists, nothing changed** → skipped. Nothing is written.
+- **ROS exists, something changed** (an intake field, a new attachment, a new comment, a new email) → Claude edits the existing document rather than rewriting it, keeps any wording people added by hand, adds a **What changed** section at the top, and replaces the file in the ROS field with the next version. The previous version is removed from the task so there is always exactly one file. The comment summarises the changes.
+
+**How to work with it.**
+
+- The ROS is in the task's **ROS** field, never in the generic attachment list.
+- To get it updated, change the task: edit a field, add a comment with the new detail ("service moved to 3:30"), or drop in an attachment. The next morning's run picks it up. Comments are the easiest way to feed it a correction.
+- Everything the document could not verify is listed under **Confirm Before Event** and repeated in the comment. Treat that list as the to-do before the event.
+- Comments that start with `[ROS]` are the bot's own and are ignored as input.
+- It never emails anyone, never changes other fields, and never touches events more than 14 days out or without a completed intake form.
+
+Manual run for one task: `GET /api/cron/ros?taskId=<id>&force=1` with `Authorization: Bearer $CRON_SECRET` (`force=1` regenerates even when nothing changed). `ROS_DRY_RUN=true` switches to emailing drafts to jordan@ instead of writing to ClickUp.
 
 ---
 
