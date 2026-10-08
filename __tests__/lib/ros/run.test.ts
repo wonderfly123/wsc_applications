@@ -7,6 +7,7 @@ import type { ClickUpTask } from '@/lib/ros/types'
 
 const INTAKE = 'dbeda913-50e7-4988-9f1d-d28ec26a9a6d'
 const FP = 'fp-field'
+const ROSF = 'ros-field'
 const NOW = new Date('2026-10-08T14:00:00Z')
 const DAY = 86_400_000
 const intakeYes = {
@@ -21,19 +22,24 @@ function mkTask(id: string, over: Partial<ClickUpTask> = {}): ClickUpTask {
   return {
     id,
     name: `Event ${id}`,
+    team_id: 'ws1',
     status: { status: 'to do' },
     date_created: String(NOW.getTime() - 10 * DAY),
     start_date: String(NOW.getTime() + 3 * DAY),
-    custom_fields: [intakeYes, { id: FP, name: 'ROS Fingerprint', type: 'text', value: '' }],
+    custom_fields: [
+      intakeYes,
+      { id: FP, name: 'ROS Fingerprint', type: 'text', value: '' },
+      { id: ROSF, name: 'ROS', type: 'attachment', value: [] },
+    ],
     attachments: [],
     ...over,
   }
 }
 
-type Calls = Record<'upload' | 'comment' | 'setField' | 'compose' | 'email', unknown[][]>
+type Calls = Record<'upload' | 'setFiles' | 'comment' | 'setField' | 'compose' | 'email', unknown[][]>
 
 function mkDeps(tasks: ClickUpTask[], over: Partial<RosDeps> = {}): RosDeps & { calls: Calls } {
-  const calls: Calls = { upload: [], comment: [], setField: [], compose: [], email: [] }
+  const calls: Calls = { upload: [], setFiles: [], comment: [], setField: [], compose: [], email: [] }
   const rec =
     (k: keyof Calls) =>
     (...a: unknown[]) => {
@@ -46,7 +52,7 @@ function mkDeps(tasks: ClickUpTask[], over: Partial<RosDeps> = {}): RosDeps & { 
     now: () => NOW,
     dryRun: false,
     timeBudgetMs: 240_000,
-    trentUserId: 7,
+    trentUserId: undefined,
     clickup: {
       listOpenTasks: async () => tasks,
       fetchRawTask: async (id) => {
@@ -55,8 +61,13 @@ function mkDeps(tasks: ClickUpTask[], over: Partial<RosDeps> = {}): RosDeps & { 
         return t
       },
       fetchTaskComments: async () => [],
-      findListFieldByName: async () => ({ id: FP, name: 'ROS Fingerprint', type: 'text' }),
-      uploadAttachment: rec('upload'),
+      findListFieldByName: async (_list, name) =>
+        name === 'ROS Fingerprint' ? { id: FP } : name === 'ROS' ? { id: ROSF } : null,
+      uploadToFilesField: async (...a: unknown[]) => {
+        calls.upload.push(a)
+        return 'new-att-id.docx'
+      },
+      setFilesFieldValue: rec('setFiles'),
       postComment: rec('comment'),
       setTextField: rec('setField'),
       downloadAttachment: async () => Buffer.from('PK'),
@@ -74,24 +85,33 @@ function mkDeps(tasks: ClickUpTask[], over: Partial<RosDeps> = {}): RosDeps & { 
   return deps
 }
 
+/** A task whose ROS field already holds v1. */
 const withRos = (id: string) =>
-  mkTask(id, { attachments: [{ id: 'r', title: `[ROS] Event ${id} v1 — DRAFT.docx`, url: 'u', date: '1' }] })
+  mkTask(id, {
+    custom_fields: [
+      intakeYes,
+      { id: FP, name: 'ROS Fingerprint', type: 'text', value: '' },
+      { id: ROSF, name: 'ROS', type: 'attachment', value: [{ id: 'old-att-id.docx', title: `[ROS] Event ${id} v1.docx`, url: 'u', date: '1' }] },
+    ],
+  })
 
 const storeFingerprint = (t: ClickUpTask) => {
-  const fp = computeFingerprint({ task: t, comments: [], messageIds: [], fingerprintFieldId: FP })
+  const fp = computeFingerprint({ task: t, comments: [], messageIds: [], excludeFieldIds: [FP, ROSF] })
   t.custom_fields = t.custom_fields.map((f) => (f.id === FP ? { ...f, value: fp } : f))
   return t
 }
 
 describe('runRos', () => {
-  it('CREATE: no [ROS] attachment → compose v1, upload, comment, store fingerprint', async () => {
+  it('CREATE: empty ROS field → compose v1, upload to the field, link it, comment, store fingerprint', async () => {
     const deps = mkDeps([mkTask('a')])
     const s = await runRos(deps)
     expect(s).toMatchObject({ considered: 1, created: 1, updated: 0, skipped: 0, failed: [] })
     expect(deps.calls.compose[0][0]).toMatchObject({ mode: 'create' })
-    expect(deps.calls.upload[0][2]).toBe('[ROS] Event a v1 — DRAFT.docx')
+    expect(deps.calls.upload[0].slice(0, 2)).toEqual(['ws1', ROSF])
+    expect(deps.calls.upload[0][3]).toBe('[ROS] Event a v1.docx')
+    expect(deps.calls.setFiles[0]).toEqual(['a', ROSF, { add: ['new-att-id.docx'], rem: [] }])
     expect(String(deps.calls.comment[0][1])).toMatch(/^\[ROS\] v1 drafted/)
-    expect(deps.calls.comment[0][2]).toBe(7)
+    expect(deps.calls.comment[0][2]).toBeUndefined()
     expect(deps.calls.setField[0][1]).toBe(FP)
   })
 
@@ -103,13 +123,26 @@ describe('runRos', () => {
     expect(deps.calls.upload).toHaveLength(0)
   })
 
-  it('UPDATE: [ROS] exists and fingerprint differs → extract existing, compose update, upload v2', async () => {
+  it('UPDATE: file in field and fingerprint differs → extract existing, compose update, replace with v2', async () => {
     const deps = mkDeps([withRos('a')])
     const s = await runRos(deps)
     expect(s).toMatchObject({ updated: 1 })
     expect(deps.calls.compose[0][0]).toMatchObject({ mode: 'update', existingRosText: 'EXISTING TEXT', previousVersion: 1 })
-    expect(deps.calls.upload[0][2]).toBe('[ROS] Event a v2 — DRAFT.docx')
+    expect(deps.calls.upload[0][3]).toBe('[ROS] Event a v2.docx')
+    expect(deps.calls.setFiles[0]).toEqual(['a', ROSF, { add: ['new-att-id.docx'], rem: ['old-att-id.docx'] }])
     expect(String(deps.calls.comment[0][1])).toContain('Something changed')
+  })
+
+  it('the ROS files field value never feeds the fingerprint', async () => {
+    const t = storeFingerprint(withRos('a'))
+    const changedRosField: ClickUpTask = {
+      ...t,
+      custom_fields: t.custom_fields.map((f) =>
+        f.id === ROSF ? { ...f, value: [{ id: 'different.docx', title: '[ROS] Event a v3.docx', url: 'u' }] } : f
+      ),
+    }
+    const deps = mkDeps([changedRosField])
+    expect((await runRos(deps)).skipped).toBe(1)
   })
 
   it('taskId processes one task regardless of window', async () => {
@@ -131,6 +164,7 @@ describe('runRos', () => {
     expect(s.dryRun).toBe(true)
     expect(deps.calls.email).toHaveLength(1)
     expect(deps.calls.upload).toHaveLength(0)
+    expect(deps.calls.setFiles).toHaveLength(0)
     expect(deps.calls.comment).toHaveLength(0)
     expect(deps.calls.setField).toHaveLength(0)
   })
@@ -155,10 +189,14 @@ describe('runRos', () => {
     expect(s.deferred).toBeGreaterThanOrEqual(1)
   })
 
-  it('fails fast when the fingerprint field is missing', async () => {
+  it('fails fast when either bot field is missing', async () => {
     const base = mkDeps([mkTask('a')])
-    const deps = mkDeps([mkTask('a')], { clickup: { ...base.clickup, findListFieldByName: async () => null } })
-    await expect(runRos(deps)).rejects.toThrow(/ROS Fingerprint/)
+    const noFp = mkDeps([mkTask('a')], { clickup: { ...base.clickup, findListFieldByName: async () => null } })
+    await expect(runRos(noFp)).rejects.toThrow(/ROS Fingerprint/)
+    const noRos = mkDeps([mkTask('a')], {
+      clickup: { ...base.clickup, findListFieldByName: async (_l, name) => (name === 'ROS Fingerprint' ? { id: FP } : null) },
+    })
+    await expect(runRos(noRos)).rejects.toThrow(/"ROS" not found/)
   })
 
   it('a failed mailbox is a warning and the task still proceeds', async () => {

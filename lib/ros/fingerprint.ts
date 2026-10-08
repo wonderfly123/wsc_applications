@@ -9,7 +9,8 @@ export interface FingerprintInputs {
   task: ClickUpTask
   comments: ClickUpComment[]
   messageIds: string[]
-  fingerprintFieldId: string
+  /** Fields the bot writes itself (ROS Fingerprint, ROS files field); never part of the hash. */
+  excludeFieldIds: string[]
   schemaVersion?: number
 }
 
@@ -30,14 +31,14 @@ export const isRosComment = (c: ClickUpComment) => (c.comment_text ?? '').trimSt
 
 /**
  * SHA-256 over everything that feeds the ROS, EXCLUDING the bot's own writes
- * (the `[ROS]` file, the `[ROS]` comment, the ROS Fingerprint field). Without
- * those exclusions SKIP could never happen.
+ * (the `[ROS]` file, the `[ROS]` comment, the ROS Fingerprint and ROS files
+ * fields). Without those exclusions SKIP could never happen.
  */
 export function computeFingerprint(inputs: FingerprintInputs): string {
-  const { task, comments, messageIds, fingerprintFieldId } = inputs
+  const { task, comments, messageIds, excludeFieldIds } = inputs
   const fields: Record<string, unknown> = {}
   for (const f of task.custom_fields ?? []) {
-    if (f.id === fingerprintFieldId) continue
+    if (excludeFieldIds.includes(f.id)) continue
     fields[f.id] = f.value ?? null
   }
   const payload = {

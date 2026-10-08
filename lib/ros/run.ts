@@ -4,7 +4,7 @@ import type { MailSearchResult } from './mail'
 import type { StampLogo } from './render'
 import { selectCandidates } from './select'
 import { computeFingerprint } from './fingerprint'
-import { latestRosAttachment, nextRosVersion, rosFilename } from './versions'
+import { latestRosAttachment, nextRosVersion, rosFilename, rosFieldFiles } from './versions'
 import { formatForDisplay } from '@/lib/intake-fields'
 
 const DOCX_MIME = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
@@ -13,6 +13,7 @@ const CLIENT_EMAIL_FIELD_ID = 'a4316b37-4646-4db8-93d7-c37561d17a77'
 const DEAL_TITLE_FIELD_ID = '9d8e3b50-556e-4039-8062-7a2bb4ac4fee'
 
 export const FINGERPRINT_FIELD_NAME = 'ROS Fingerprint'
+export const ROS_FILES_FIELD_NAME = 'ROS'
 
 export interface RosDeps {
   listId: string
@@ -25,7 +26,8 @@ export interface RosDeps {
     fetchRawTask(taskId: string): Promise<ClickUpTask>
     fetchTaskComments(taskId: string): Promise<ClickUpComment[]>
     findListFieldByName(listId: string, name: string): Promise<{ id: string } | null>
-    uploadAttachment(taskId: string, content: Buffer, filename: string, mimetype: string): Promise<void>
+    uploadToFilesField(workspaceId: string, fieldId: string, content: Buffer, filename: string, mimetype: string): Promise<string>
+    setFilesFieldValue(taskId: string, fieldId: string, value: { add?: string[]; rem?: string[] }): Promise<void>
     postComment(taskId: string, text: string, assignee?: number): Promise<void>
     setTextField(taskId: string, fieldId: string, value: string): Promise<void>
     downloadAttachment(url: string): Promise<Buffer>
@@ -42,10 +44,17 @@ export interface RunOptions {
   force?: boolean
 }
 
+/** Ids of the two fields the bot writes; resolved once per run. */
+export interface BotFields {
+  fingerprintFieldId: string
+  rosFieldId: string
+}
+
 /** Field name → display string, with dropdowns resolved by option and dates formatted Pacific. */
-export function summarizeFields(task: ClickUpTask): Record<string, string> {
+export function summarizeFields(task: ClickUpTask, exclude: string[] = []): Record<string, string> {
   const out: Record<string, string> = {}
   for (const f of task.custom_fields ?? []) {
+    if (exclude.includes(f.id)) continue
     if (f.value === null || f.value === undefined || f.value === '') continue
     if (f.type === 'drop_down') {
       const o = f.type_config?.options?.find((x) => x.orderindex === f.value || x.id === f.value)
@@ -95,7 +104,7 @@ async function stampLogo(task: ClickUpTask, deps: RosDeps): Promise<StampLogo | 
 export async function processTask(
   taskId: string,
   deps: RosDeps,
-  fingerprintFieldId: string,
+  fields: BotFields,
   warnings: string[],
   force = false
 ): Promise<TaskOutcome> {
@@ -110,26 +119,28 @@ export async function processTask(
   })
   for (const mb of mail.failedMailboxes) warnings.push(`${taskId}: mailbox ${mb} unavailable, used ClickUp data only`)
 
+  const excludeFieldIds = [fields.fingerprintFieldId, fields.rosFieldId]
   const fingerprint = computeFingerprint({
     task,
     comments,
     messageIds: mail.excerpts.map((e) => e.messageId),
-    fingerprintFieldId,
+    excludeFieldIds,
   })
-  const stored = task.custom_fields.find((f) => f.id === fingerprintFieldId)?.value
-  const latest = latestRosAttachment(task.attachments ?? [])
+  const stored = task.custom_fields.find((f) => f.id === fields.fingerprintFieldId)?.value
+  const currentFiles = rosFieldFiles(task, fields.rosFieldId)
+  const latest = latestRosAttachment(currentFiles)
 
   if (latest && stored === fingerprint && !force) return 'skipped'
 
   const mode: ComposeInputs['mode'] = latest ? 'update' : 'create'
-  const version = nextRosVersion(task.attachments ?? [])
+  const version = nextRosVersion(currentFiles)
   let existingRosText: string | null = null
   if (latest) existingRosText = await deps.extract(await deps.clickup.downloadAttachment(latest.url))
 
   const doc = await deps.compose({
     mode,
     task,
-    fieldSummary: summarizeFields(task),
+    fieldSummary: summarizeFields(task, excludeFieldIds),
     comments,
     emails: mail.excerpts,
     existingRosText,
@@ -142,9 +153,15 @@ export async function processTask(
   if (deps.dryRun) {
     await deps.sendDraftEmail({ taskName: task.name, taskUrl: `https://app.clickup.com/t/${task.id}`, filename, content, comment })
   } else {
-    await deps.clickup.uploadAttachment(task.id, content, filename, DOCX_MIME)
+    if (!task.team_id) throw new Error(`Task ${task.id} has no team_id; cannot upload to the ROS files field`)
+    const newId = await deps.clickup.uploadToFilesField(task.team_id, fields.rosFieldId, content, filename, DOCX_MIME)
+    // One current file at a time: link the new version and unlink every previous one.
+    await deps.clickup.setFilesFieldValue(task.id, fields.rosFieldId, {
+      add: [newId],
+      rem: currentFiles.map((f) => f.id),
+    })
     await deps.clickup.postComment(task.id, comment, deps.trentUserId)
-    await deps.clickup.setTextField(task.id, fingerprintFieldId, fingerprint)
+    await deps.clickup.setTextField(task.id, fields.fingerprintFieldId, fingerprint)
   }
   return mode === 'create' ? 'created' : 'updated'
 }
@@ -162,12 +179,19 @@ export async function runRos(deps: RosDeps, opts: RunOptions = {}): Promise<RunS
     warnings: [],
   }
 
-  const field = await deps.clickup.findListFieldByName(deps.listId, FINGERPRINT_FIELD_NAME)
-  if (!field) {
+  const fpField = await deps.clickup.findListFieldByName(deps.listId, FINGERPRINT_FIELD_NAME)
+  if (!fpField) {
     throw new Error(
       `Custom field "${FINGERPRINT_FIELD_NAME}" not found on list ${deps.listId}. Create a Text field with that exact name.`
     )
   }
+  const rosField = await deps.clickup.findListFieldByName(deps.listId, ROS_FILES_FIELD_NAME)
+  if (!rosField) {
+    throw new Error(
+      `Custom field "${ROS_FILES_FIELD_NAME}" not found on list ${deps.listId}. Create a Files field with that exact name.`
+    )
+  }
+  const fields: BotFields = { fingerprintFieldId: fpField.id, rosFieldId: rosField.id }
 
   let ids: string[]
   if (opts.taskId) {
@@ -185,7 +209,7 @@ export async function runRos(deps: RosDeps, opts: RunOptions = {}): Promise<RunS
       break
     }
     try {
-      const outcome = await processTask(ids[i], deps, field.id, summary.warnings, opts.force)
+      const outcome = await processTask(ids[i], deps, fields, summary.warnings, opts.force)
       summary[outcome]++
     } catch (err) {
       summary.failed.push({ taskId: ids[i], error: err instanceof Error ? err.message : String(err) })

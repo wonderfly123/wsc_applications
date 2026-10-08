@@ -52,9 +52,9 @@ If any webhook or form submission fails, an alert email goes to **jordan@windans
 
 Every morning at 7 AM Pacific (14:00 UTC) a Vercel cron looks at every Events task whose intake form is complete and whose event is within the next 14 days.
 
-- **No `[ROS]` file on the task** → Claude writes a Run of Show from the ClickUp fields, attachments, comments and matching emails in Harrison's (and, when configured, Trent's) inbox, renders it as a Word document in the LJBTC template layout, attaches it as `[ROS] <Event> v1 — DRAFT.docx`, and posts a `[ROS]` comment assigned to Trent with the open items.
+- **ROS field is empty** → Claude writes a Run of Show from the ClickUp fields, attachments, comments and matching emails in Harrison's (and, when configured, Trent's) inbox, renders it as a Word document in the LJBTC template layout, puts it in the task's **ROS** Files field as `[ROS] <Event> v1.docx`, and posts a `[ROS]` comment with the open items.
 - **File exists and nothing changed** → skipped. Change detection is a fingerprint of the inputs stored in the task's **ROS Fingerprint** text field.
-- **File exists and inputs changed** → Claude updates the existing document, keeping manual edits, adds a "What changed" section, attaches the next version and comments the changes.
+- **File exists and inputs changed** → Claude updates the existing document, keeping manual edits, adds a "What changed" section, replaces the file in the ROS field with the next version (the previous version is removed from the task) and comments the changes.
 
 It writes to ClickUp by default. Set `ROS_DRY_RUN=true` to have drafts emailed to jordan@ instead. Manual run: `GET /api/cron/ros?taskId=<id>&force=1` with `Authorization: Bearer $CRON_SECRET`.
 
@@ -113,7 +113,7 @@ Copy for these lives in `lib/email.ts` and `lib/decal.ts`.
 | `CLICKUP_USER_ID_TRENT` | Assigns the `[ROS]` comment to Trent (ClickUp comment assignee, which notifies him), optional |
 | `ROS_DRY_RUN` | Unset or `false` (default) writes to ClickUp; `true` emails drafts to jordan@ instead |
 
-One-time ClickUp setup: add a **Text** custom field named exactly `ROS Fingerprint` to the Events list. The route looks it up by name and fails fast if it is missing. The cron schedule lives in `vercel.json`; the code is under `lib/ros/` with the route at `app/api/cron/ros/route.ts`.
+One-time ClickUp setup on the Events list: a **Text** custom field named exactly `ROS Fingerprint` and a **Files** custom field named exactly `ROS`. The route looks both up by name and fails fast if either is missing. Files go through ClickUp's v3 custom-field attachments endpoint because generic task attachments cannot be deleted via the API. The cron schedule lives in `vercel.json`; the code is under `lib/ros/` with the route at `app/api/cron/ros/route.ts`.
 
 ### ClickUp
 

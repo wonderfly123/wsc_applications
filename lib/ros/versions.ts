@@ -1,4 +1,4 @@
-import type { ClickUpAttachment } from './types'
+import type { ClickUpAttachment, ClickUpTask } from './types'
 
 export const ROS_PREFIX = '[ROS]'
 
@@ -26,12 +26,21 @@ export function nextRosVersion(attachments: ClickUpAttachment[]): number {
   return max + 1
 }
 
-/** `[ROS] <task name> vN — DRAFT.docx`, with filesystem-hostile characters removed. */
+/** `[ROS] <task name> vN.docx`, with filesystem-hostile characters removed. */
 export function rosFilename(taskName: string, version: number): string {
   const safe = taskName
     .replace(/[\\/:]/g, '-')
     .replace(/["*?<>|]/g, '')
     .replace(/\s+/g, ' ')
     .trim()
-  return `${ROS_PREFIX} ${safe} v${version} — DRAFT.docx`
+  return `${ROS_PREFIX} ${safe} v${version}.docx`
+}
+
+/** The files currently linked in the task's ROS Files custom field (the value is an attachment array). */
+export function rosFieldFiles(task: ClickUpTask, rosFieldId: string): ClickUpAttachment[] {
+  const f = task.custom_fields?.find((x) => x.id === rosFieldId)
+  if (!Array.isArray(f?.value)) return []
+  return (f.value as Array<Partial<ClickUpAttachment>>)
+    .filter((a) => typeof a.id === 'string')
+    .map((a) => ({ id: a.id as string, title: a.title ?? '', url: a.url ?? '', mimetype: a.mimetype, date: a.date }))
 }

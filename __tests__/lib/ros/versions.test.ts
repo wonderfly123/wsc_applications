@@ -1,7 +1,7 @@
 // @vitest-environment node
 import { describe, it, expect } from 'vitest'
-import { latestRosAttachment, nextRosVersion, rosFilename, isRosAttachment } from '@/lib/ros/versions'
-import type { ClickUpAttachment } from '@/lib/ros/types'
+import { latestRosAttachment, nextRosVersion, rosFilename, isRosAttachment, rosFieldFiles } from '@/lib/ros/versions'
+import type { ClickUpAttachment, ClickUpTask } from '@/lib/ros/types'
 
 const att = (id: string, title: string, date: string): ClickUpAttachment => ({ id, title, url: `https://x/${id}`, date })
 
@@ -26,7 +26,20 @@ describe('versions', () => {
     expect(nextRosVersion([att('a', '[ROS] Palm Tree.docx', '1')])).toBe(2)
   })
   it('builds the filename', () => {
-    expect(rosFilename('Palm Tree Music Festival', 2)).toBe('[ROS] Palm Tree Music Festival v2 — DRAFT.docx')
-    expect(rosFilename('Smith / Wedding: "Big" Day', 1)).toBe('[ROS] Smith - Wedding- Big Day v1 — DRAFT.docx')
+    expect(rosFilename('Palm Tree Music Festival', 2)).toBe('[ROS] Palm Tree Music Festival v2.docx')
+    expect(rosFilename('Smith / Wedding: "Big" Day', 1)).toBe('[ROS] Smith - Wedding- Big Day v1.docx')
+  })
+  it('reads the files linked in the ROS custom field', () => {
+    const task: ClickUpTask = {
+      id: 't',
+      name: 'T',
+      custom_fields: [
+        { id: 'ros', name: 'ROS', type: 'attachment', value: [{ id: 'f1.docx', title: '[ROS] T v2.docx', url: 'u', date: '5' }] },
+        { id: 'other', name: 'Other', type: 'text', value: 'x' },
+      ],
+    }
+    expect(rosFieldFiles(task, 'ros')).toEqual([{ id: 'f1.docx', title: '[ROS] T v2.docx', url: 'u', mimetype: undefined, date: '5' }])
+    expect(rosFieldFiles(task, 'other')).toEqual([])
+    expect(rosFieldFiles(task, 'missing')).toEqual([])
   })
 })

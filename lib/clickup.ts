@@ -443,3 +443,42 @@ export async function downloadAttachment(url: string): Promise<Buffer> {
   if (!res.ok) throw new Error(`Attachment download failed: ${res.status}`)
   return Buffer.from(await res.arrayBuffer())
 }
+
+/**
+ * Upload a file into a Files (attachment) custom field via the v3 attachments
+ * endpoint. Returns the attachment id, which must then be linked to a task
+ * with setFilesFieldValue. Generic task attachments cannot be used here
+ * (ClickUp rejects them with FIELD_250).
+ */
+export async function uploadToFilesField(
+  workspaceId: string,
+  fieldId: string,
+  content: Buffer | Uint8Array,
+  filename: string,
+  mimetype = 'application/octet-stream'
+): Promise<string> {
+  const formData = new FormData()
+  formData.append('attachment', new File([Uint8Array.from(content)], filename, { type: mimetype }), filename)
+  const res = await fetch(`https://api.clickup.com/api/v3/workspaces/${workspaceId}/custom_fields/${fieldId}/attachments`, {
+    method: 'POST',
+    headers: { Authorization: apiKey() },
+    body: formData,
+  })
+  if (!res.ok) throw new Error(`ClickUp files-field upload failed: ${res.status} ${(await res.text().catch(() => '')).slice(0, 200)}`)
+  const data = (await res.json()) as { id?: string }
+  if (!data.id) throw new Error('ClickUp files-field upload returned no id')
+  return data.id
+}
+
+/** Link and unlink attachment ids on a task's Files custom field. Removed files disappear from the task. */
+export async function setFilesFieldValue(
+  taskId: string,
+  fieldId: string,
+  value: { add?: string[]; rem?: string[] }
+): Promise<void> {
+  await clickupJson(`${CLICKUP}/task/${taskId}/field/${fieldId}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ value }),
+  })
+}

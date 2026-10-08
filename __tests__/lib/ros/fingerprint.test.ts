@@ -22,7 +22,7 @@ const args = (over: Partial<{ task: ClickUpTask; comments: ClickUpComment[]; mes
   task: over.task ?? base,
   comments: over.comments ?? comments,
   messageIds: over.messageIds ?? ['m1'],
-  fingerprintFieldId: FP_FIELD,
+  excludeFieldIds: [FP_FIELD],
 })
 
 describe('computeFingerprint', () => {

@@ -6,6 +6,8 @@ import {
   fetchTaskComments,
   findListFieldByName,
   uploadAttachment,
+  uploadToFilesField,
+  setFilesFieldValue,
   postComment,
   setTextField,
   downloadAttachment,
@@ -105,5 +107,18 @@ describe('clickup ROS helpers', () => {
     expect((await downloadAttachment('https://x/y')).length).toBe(3)
     fetchMock.mockResolvedValueOnce(json({}, false, 404))
     await expect(downloadAttachment('https://x/z')).rejects.toThrow(/404/)
+  })
+
+  it('uploadToFilesField posts to the v3 custom_fields endpoint and returns the id; setFilesFieldValue sends add/rem', async () => {
+    fetchMock.mockResolvedValueOnce(json({ id: 'abc.docx', title: 'x' }))
+    const id = await uploadToFilesField('ws1', 'f1', Buffer.from('abc'), '[ROS] T v1.docx', 'application/octet-stream')
+    expect(id).toBe('abc.docx')
+    const [url, init] = fetchMock.mock.calls[0]
+    expect(url).toBe('https://api.clickup.com/api/v3/workspaces/ws1/custom_fields/f1/attachments')
+    expect(((init.body as FormData).get('attachment') as File).name).toBe('[ROS] T v1.docx')
+    fetchMock.mockResolvedValueOnce(json({}))
+    await setFilesFieldValue('t', 'f1', { add: ['abc.docx'], rem: ['old.docx'] })
+    expect(fetchMock.mock.calls[1][0]).toBe('https://api.clickup.com/api/v2/task/t/field/f1')
+    expect(JSON.parse(fetchMock.mock.calls[1][1].body)).toEqual({ value: { add: ['abc.docx'], rem: ['old.docx'] } })
   })
 })

@@ -73,6 +73,8 @@ export interface ClickUpComment {
 export interface ClickUpTask {
   id: string
   name: string
+  /** Workspace id, needed for the v3 attachments endpoint. */
+  team_id?: string
   status?: { status: string }
   date_created?: string
   start_date?: string | null
