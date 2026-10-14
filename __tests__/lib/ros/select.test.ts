@@ -56,14 +56,14 @@ describe('pacificDate', () => {
 })
 
 describe('selectCandidates', () => {
-  it('keeps intake-complete tasks from today through day 14, sorted by event date', () => {
+  it('keeps intake-complete tasks from today through day 21, sorted by event date', () => {
     const t = (id: string, offsetDays: number, intake = 0) =>
       task(id, { start_date: String(NOW.getTime() + offsetDays * DAY) }, intake)
     const { candidates, skippedNoDate } = selectCandidates(
-      [t('d14', 14), t('d0', 0), t('d15', 15), t('past', -1), t('noIntake', 3, 1), t('d7', 7)],
+      [t('d21', 21), t('d0', 0), t('d22', 22), t('past', -1), t('noIntake', 3, 1), t('d7', 7)],
       NOW
     )
-    expect(candidates.map((c) => c.id)).toEqual(['d0', 'd7', 'd14'])
+    expect(candidates.map((c) => c.id)).toEqual(['d0', 'd7', 'd21'])
     expect(skippedNoDate).toEqual([])
   })
   it('reports intake-complete tasks that have no date at all', () => {

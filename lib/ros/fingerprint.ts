@@ -9,7 +9,7 @@ export interface FingerprintInputs {
   task: ClickUpTask
   comments: ClickUpComment[]
   messageIds: string[]
-  /** Fields the bot writes itself (ROS Fingerprint, ROS files field, ROS Doc link); never part of the hash. */
+  /** Fields the bot writes itself (ROS Fingerprint, ROS files field); never part of the hash. */
   excludeFieldIds: string[]
   schemaVersion?: number
 }

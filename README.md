@@ -50,9 +50,9 @@ If any webhook or form submission fails, an alert email goes to **jordan@windans
 
 ### 6. Daily Run of Show (ROS)
 
-Every morning at 7 AM Pacific a cron writes or refreshes the Run of Show for every confirmed event in the next 14 days, so the crew always has a current one-page plan on the ClickUp task.
+Every morning at 7 AM Pacific a cron writes or refreshes the Run of Show for every confirmed event in the next 21 days, so the crew always has a current one-page plan on the ClickUp task.
 
-**Which tasks it touches.** Events-list tasks where **Intake Form Complete** is Yes and the event date (Service Start, else task start, else due date) falls within the next 14 days. Nothing else is ever read or written.
+**Which tasks it touches.** Events-list tasks where **Intake Form Complete** is Yes and the event date (Service Start, else task start, else due date) falls within the next 21 days. Nothing else is ever read or written.
 
 **What it does per task.**
 
@@ -60,7 +60,6 @@ Every morning at 7 AM Pacific a cron writes or refreshes the Run of Show for eve
 - **ROS exists, nothing changed** → skipped. Nothing is written.
 - **ROS exists, something changed** (an intake field, a new attachment, a new comment, a new email) → Claude edits the existing document rather than rewriting it, keeps any wording people added by hand, adds a **What changed** section at the top, and replaces the file in the ROS field with the next version. The previous version is removed from the task so there is always exactly one file. The comment summarises the changes.
 - **Discrepancies** → Claude compares the ClickUp task against Harrison's emails and the current ROS (including hand edits). Wherever they disagree (headcount, times, location, coconut count, contacts and so on) it adds a red **DISCREPANCIES — RESOLVE BEFORE EVENT** section near the top listing both values and where each came from, and repeats them in the `[ROS]` comment. The body uses the most recent information, so the flag tells you which source to fix, usually the ClickUp field nobody updated.
-- **ClickUp Doc copy** → every new version is also written to a ClickUp Doc under the Events list, linked from the task's **ROS Doc** field, so the Word file and the Doc can be compared side by side. The Word file stays the source of truth: edits made in the Doc are not read back yet and are overwritten by the next version.
 
 **How to work with it.**
 
@@ -69,7 +68,7 @@ Every morning at 7 AM Pacific a cron writes or refreshes the Run of Show for eve
 - To edit the document directly, download it, change it in Word, and upload it back into the ROS field (any filename works). The bot treats whatever is in that field as the current version, keeps your edits on the next update, and lists what it changed.
 - Everything the document could not verify is listed under **Confirm Before Event**. Treat that list as the to-do before the event.
 - The bot posts a `[ROS]` comment only when it writes a new version. No new version, no comment.
-- It never emails anyone, never changes other fields, and never touches events more than 14 days out or without a completed intake form.
+- It never emails anyone, never changes other fields, and never touches events more than 21 days out or without a completed intake form.
 
 Manual run for one task: `GET /api/cron/ros?taskId=<id>&force=1` with `Authorization: Bearer $CRON_SECRET` (`force=1` regenerates even when nothing changed). `ROS_DRY_RUN=true` switches to emailing drafts to jordan@ instead of writing to ClickUp.
 
@@ -103,7 +102,7 @@ Manual run for one task: `GET /api/cron/ros?taskId=<id>&force=1` with `Authoriza
 | `POST /api/webhooks/square` | API | Verifies signature, filters wholesale, creates Wholesale task |
 | `POST /api/intake/[taskId]` | API | Writes intake form answers and uploads to ClickUp |
 | `POST /api/decal` | API | Validates password and order, builds PDF, emails Marcus |
-| `GET /api/cron/ros` | API | Daily ROS create/update for events in the next 14 days (cron, bearer secret) |
+| `GET /api/cron/ros` | API | Daily ROS create/update for events in the next 21 days (cron, bearer secret) |
 
 ### Email senders
 
@@ -128,7 +127,7 @@ Copy for these lives in `lib/email.ts` and `lib/decal.ts`.
 | `CLICKUP_USER_ID_TRENT` | Assigns the `[ROS]` comment to Trent (ClickUp comment assignee, which notifies him), optional |
 | `ROS_DRY_RUN` | Unset or `false` (default) writes to ClickUp; `true` emails drafts to jordan@ instead |
 
-One-time ClickUp setup on the Events list: a **Text** custom field named exactly `ROS Fingerprint` and a **Files** custom field named exactly `ROS`. The route looks both up by name and fails fast if either is missing. Files go through ClickUp's v3 custom-field attachments endpoint because generic task attachments cannot be deleted via the API. The cron schedule lives in `vercel.json`; the code is under `lib/ros/` with the route at `app/api/cron/ros/route.ts`. An optional **Website** field named `ROS Doc` turns on the ClickUp Doc copy (`lib/clickup-docs.ts`); without it the run skips the Doc.
+One-time ClickUp setup on the Events list: a **Text** custom field named exactly `ROS Fingerprint` and a **Files** custom field named exactly `ROS`. The route looks both up by name and fails fast if either is missing. Files go through ClickUp's v3 custom-field attachments endpoint because generic task attachments cannot be deleted via the API. The cron schedule lives in `vercel.json`; the code is under `lib/ros/` with the route at `app/api/cron/ros/route.ts`.
 
 ### ClickUp
 

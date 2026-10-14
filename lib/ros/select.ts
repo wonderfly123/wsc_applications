@@ -2,7 +2,7 @@ import { INTAKE_COMPLETE_FIELD_ID } from '@/lib/intake-fields'
 import type { ClickUpTask } from './types'
 
 export const SERVICE_START_FIELD_ID = 'f6483054-1434-4c04-ac53-06af6042a96f'
-export const WINDOW_DAYS = 14
+export const WINDOW_DAYS = 21
 const PACIFIC = 'America/Los_Angeles'
 
 /** YYYY-MM-DD for an instant, on the Pacific calendar. */
@@ -43,7 +43,7 @@ export interface Selection {
 }
 
 /**
- * Intake-complete tasks whose event date is within [today, today + 14] on the
+ * Intake-complete tasks whose event date is within [today, today + 21] on the
  * Pacific calendar, soonest first. Tasks with no date are reported, not processed.
  */
 export function selectCandidates(tasks: ClickUpTask[], now: Date = new Date()): Selection {

@@ -2,8 +2,6 @@ import type { ClickUpTask, ClickUpComment, RosDocument, RunSummary, TaskOutcome 
 import type { ComposeInputs } from './compose'
 import type { MailSearchResult } from './mail'
 import type { StampLogo } from './render'
-import type { UpsertRosDocParams } from '@/lib/clickup-docs'
-import { renderRosMarkdown } from './render-md'
 import { selectCandidates } from './select'
 import { computeFingerprint } from './fingerprint'
 import { latestRosAttachment, nextRosVersion, rosFilename, rosFieldFiles } from './versions'
@@ -16,7 +14,6 @@ const DEAL_TITLE_FIELD_ID = '9d8e3b50-556e-4039-8062-7a2bb4ac4fee'
 
 export const FINGERPRINT_FIELD_NAME = 'ROS Fingerprint'
 export const ROS_FILES_FIELD_NAME = 'ROS'
-export const ROS_DOC_FIELD_NAME = 'ROS Doc'
 
 export interface RosDeps {
   listId: string
@@ -34,7 +31,6 @@ export interface RosDeps {
     postComment(taskId: string, text: string, assignee?: number): Promise<void>
     setTextField(taskId: string, fieldId: string, value: string): Promise<void>
     downloadAttachment(url: string): Promise<Buffer>
-    upsertRosDoc(params: UpsertRosDocParams): Promise<string>
   }
   searchMail(opts: { clientEmail: string; titles: string[]; since: Date }): Promise<MailSearchResult>
   compose(inputs: ComposeInputs): Promise<RosDocument>
@@ -48,12 +44,10 @@ export interface RunOptions {
   force?: boolean
 }
 
-/** Ids of the fields the bot writes; resolved once per run. */
+/** Ids of the two fields the bot writes; resolved once per run. */
 export interface BotFields {
   fingerprintFieldId: string
   rosFieldId: string
-  /** Optional URL field linking the ClickUp Doc copy of the ROS. */
-  rosDocFieldId?: string
 }
 
 /** Field name → display string, with dropdowns resolved by option and dates formatted Pacific. */
@@ -86,13 +80,14 @@ const fieldValue = (task: ClickUpTask, fieldId: string): string => {
 }
 
 function commentFor(doc: RosDocument, version: number): string {
-  const open = doc.openItems.length ? `Open items: ${doc.openItems.join('; ')}` : 'No open items.'
-  const conflicts = doc.discrepancies.length
-    ? ` 🔴 DISCREPANCIES: ${doc.discrepancies.map((d) => `${d.item} (ClickUp: ${d.clickup}; ${d.source}: ${d.other})`).join('; ')}.`
-    : ''
-  if (version === 1) return `[ROS] v1 drafted — please review.${conflicts} ${open}`
-  const changes = doc.changes?.length ? doc.changes.join('; ') : 'inputs changed'
-  return `[ROS] v${version} — updated: ${changes}.${conflicts} ${open}`
+  const list = (heading: string, items: string[]) => [heading, ...items.map((i) => `- ${i}`)].join('\n')
+  const parts = [version === 1 ? '[ROS] v1 drafted, please review' : `[ROS] v${version} updated`]
+  if (version > 1) parts.push(list('Changes:', doc.changes?.length ? doc.changes : ['Inputs changed']))
+  if (doc.discrepancies.length) {
+    parts.push(list('🔴 Discrepancies:', doc.discrepancies.map((d) => `${d.item}: ClickUp ${d.clickup} vs ${d.other} (${d.source})`)))
+  }
+  parts.push(doc.openItems.length ? list('Open items:', doc.openItems) : 'No open items')
+  return parts.join('\n\n')
 }
 
 async function stampLogo(task: ClickUpTask, deps: RosDeps): Promise<StampLogo | undefined> {
@@ -107,31 +102,6 @@ async function stampLogo(task: ClickUpTask, deps: RosDeps): Promise<StampLogo | 
   } catch (err) {
     console.warn('Stamp logo download failed, rendering without it:', err)
     return undefined
-  }
-}
-
-/** Mirror the ROS into the task's ClickUp Doc. A failure here is a warning; the Word file is already in place. */
-async function writeRosDoc(
-  task: ClickUpTask,
-  doc: RosDocument,
-  version: number,
-  rosDocFieldId: string,
-  deps: RosDeps,
-  warnings: string[]
-): Promise<void> {
-  const existing = task.custom_fields.find((f) => f.id === rosDocFieldId)?.value
-  const existingUrl = typeof existing === 'string' && existing ? existing : undefined
-  try {
-    const url = await deps.clickup.upsertRosDoc({
-      workspaceId: task.team_id!,
-      listId: deps.listId,
-      title: `[ROS] ${task.name}`,
-      markdown: renderRosMarkdown(doc, { version }),
-      existingUrl,
-    })
-    if (url !== existingUrl) await deps.clickup.setTextField(task.id, rosDocFieldId, url)
-  } catch (err) {
-    warnings.push(`${task.id}: ROS Doc not updated (${err instanceof Error ? err.message : String(err)})`)
   }
 }
 
@@ -153,7 +123,7 @@ export async function processTask(
   })
   for (const mb of mail.failedMailboxes) warnings.push(`${taskId}: mailbox ${mb} unavailable, used ClickUp data only`)
 
-  const excludeFieldIds = [fields.fingerprintFieldId, fields.rosFieldId, ...(fields.rosDocFieldId ? [fields.rosDocFieldId] : [])]
+  const excludeFieldIds = [fields.fingerprintFieldId, fields.rosFieldId]
   const fingerprint = computeFingerprint({
     task,
     comments,
@@ -195,7 +165,6 @@ export async function processTask(
       add: [newId],
       rem: currentFiles.map((f) => f.id),
     })
-    if (fields.rosDocFieldId) await writeRosDoc(task, doc, version, fields.rosDocFieldId, deps, warnings)
     await deps.clickup.postComment(task.id, comment, deps.trentUserId)
     await deps.clickup.setTextField(task.id, fields.fingerprintFieldId, fingerprint)
   }
@@ -227,8 +196,7 @@ export async function runRos(deps: RosDeps, opts: RunOptions = {}): Promise<RunS
       `Custom field "${ROS_FILES_FIELD_NAME}" not found on list ${deps.listId}. Create a Files field with that exact name.`
     )
   }
-  const docField = await deps.clickup.findListFieldByName(deps.listId, ROS_DOC_FIELD_NAME)
-  const fields: BotFields = { fingerprintFieldId: fpField.id, rosFieldId: rosField.id, rosDocFieldId: docField?.id }
+  const fields: BotFields = { fingerprintFieldId: fpField.id, rosFieldId: rosField.id }
 
   let ids: string[]
   if (opts.taskId) {
