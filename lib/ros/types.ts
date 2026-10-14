@@ -10,6 +10,12 @@ const BlockSchema = z.object({
 const HeadedBulletsSchema = z.object({ heading: z.string(), bullets: z.array(z.string()).min(1) })
 const LabelValueSchema = z.object({ label: z.string(), value: z.string() })
 const BreakdownRowSchema = z.object({ item: z.string(), detail: z.string() })
+const DiscrepancySchema = z.object({
+  item: z.string().describe('What disagrees, e.g. "Headcount" or "Service start time"'),
+  clickup: z.string().describe('What the ClickUp task says, or "not in ClickUp"'),
+  other: z.string().describe('What the other source says'),
+  source: z.string().describe('Where the other value came from, e.g. "Harrison email, Oct 12" or "Existing ROS (hand edit)"'),
+})
 
 /**
  * The whole Run of Show. Claude fills this; render.ts turns it into a .docx.
@@ -29,6 +35,9 @@ export const RosDocumentSchema = z.object({
   entrance: z.string().describe('Entrance & Check-In paragraph, without the label'),
   callout: z.string().nullable().describe('Bold all-caps warning, or null'),
   changes: z.array(z.string()).nullable().describe('UPDATE mode only: what changed since the previous version'),
+  discrepancies: z
+    .array(DiscrepancySchema)
+    .describe('Facts where ClickUp disagrees with an email or the existing ROS; empty when everything agrees'),
   days: z.array(z.object({ heading: z.string(), blocks: z.array(BlockSchema).min(1) })).min(1),
   setTimes: z.array(HeadedBulletsSchema).nullable(),
   breakdown: z.array(BreakdownRowSchema).min(1),

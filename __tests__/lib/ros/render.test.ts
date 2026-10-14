@@ -54,4 +54,17 @@ describe('renderRos', () => {
     const zip = await JSZip.loadAsync(buf)
     expect(Object.keys(zip.files).some((f) => f.startsWith('word/media/'))).toBe(true)
   })
+
+  it('renders discrepancies in red near the top', async () => {
+    const buf = await renderRos({
+      ...LJBTC_EXEMPLAR,
+      discrepancies: [{ item: 'Headcount', clickup: '150', other: '200', source: 'Harrison email, Oct 12' }],
+    })
+    const text = await extractDocxText(buf)
+    expect(text).toContain('DISCREPANCIES — RESOLVE BEFORE EVENT')
+    expect(text).toContain('Headcount: ClickUp says 150; Harrison email, Oct 12 says 200')
+    expect(text.indexOf('DISCREPANCIES')).toBeLessThan(text.indexOf('EVENT DAY'))
+    const xml = await (await JSZip.loadAsync(buf)).file('word/document.xml')!.async('string')
+    expect(xml).toContain('w:color w:val="C00000"')
+  })
 })

@@ -8,6 +8,7 @@ import type { ClickUpTask } from '@/lib/ros/types'
 const INTAKE = 'dbeda913-50e7-4988-9f1d-d28ec26a9a6d'
 const FP = 'fp-field'
 const ROSF = 'ros-field'
+const DOCF = 'ros-doc-field'
 const NOW = new Date('2026-10-08T14:00:00Z')
 const DAY = 86_400_000
 const intakeYes = {
@@ -36,10 +37,10 @@ function mkTask(id: string, over: Partial<ClickUpTask> = {}): ClickUpTask {
   }
 }
 
-type Calls = Record<'upload' | 'setFiles' | 'comment' | 'setField' | 'compose' | 'email', unknown[][]>
+type Calls = Record<'upload' | 'setFiles' | 'comment' | 'setField' | 'compose' | 'email' | 'doc', unknown[][]>
 
 function mkDeps(tasks: ClickUpTask[], over: Partial<RosDeps> = {}): RosDeps & { calls: Calls } {
-  const calls: Calls = { upload: [], setFiles: [], comment: [], setField: [], compose: [], email: [] }
+  const calls: Calls = { upload: [], setFiles: [], comment: [], setField: [], compose: [], email: [], doc: [] }
   const rec =
     (k: keyof Calls) =>
     (...a: unknown[]) => {
@@ -62,7 +63,7 @@ function mkDeps(tasks: ClickUpTask[], over: Partial<RosDeps> = {}): RosDeps & { 
       },
       fetchTaskComments: async () => [],
       findListFieldByName: async (_list, name) =>
-        name === 'ROS Fingerprint' ? { id: FP } : name === 'ROS' ? { id: ROSF } : null,
+        name === 'ROS Fingerprint' ? { id: FP } : name === 'ROS' ? { id: ROSF } : name === 'ROS Doc' ? { id: DOCF } : null,
       uploadToFilesField: async (...a: unknown[]) => {
         calls.upload.push(a)
         return 'new-att-id.docx'
@@ -71,6 +72,10 @@ function mkDeps(tasks: ClickUpTask[], over: Partial<RosDeps> = {}): RosDeps & { 
       postComment: rec('comment'),
       setTextField: rec('setField'),
       downloadAttachment: async () => Buffer.from('PK'),
+      upsertRosDoc: async (p) => {
+        calls.doc.push([p])
+        return 'https://app.clickup.com/ws1/v/dc/doc1'
+      },
     },
     searchMail: async () => ({ excerpts: [], failedMailboxes: [] }),
     compose: async (inputs) => {
@@ -112,7 +117,9 @@ describe('runRos', () => {
     expect(deps.calls.setFiles[0]).toEqual(['a', ROSF, { add: ['new-att-id.docx'], rem: [] }])
     expect(String(deps.calls.comment[0][1])).toMatch(/^\[ROS\] v1 drafted/)
     expect(deps.calls.comment[0][2]).toBeUndefined()
-    expect(deps.calls.setField[0][1]).toBe(FP)
+    expect(deps.calls.doc[0][0]).toMatchObject({ workspaceId: 'ws1', listId: 'list1', title: '[ROS] Event a' })
+    expect(deps.calls.setField[0]).toEqual(['a', DOCF, 'https://app.clickup.com/ws1/v/dc/doc1'])
+    expect(deps.calls.setField[1][1]).toBe(FP)
   })
 
   it('SKIP: stored fingerprint matches → no compose, no writes', async () => {
@@ -212,6 +219,56 @@ describe('runRos', () => {
       clickup: { ...base.clickup, findListFieldByName: async (_l, name) => (name === 'ROS Fingerprint' ? { id: FP } : null) },
     })
     await expect(runRos(noRos)).rejects.toThrow(/"ROS" not found/)
+  })
+
+  it('reuses the linked ROS Doc and does not rewrite the link', async () => {
+    const t = withRos('a')
+    t.custom_fields.push({ id: DOCF, name: 'ROS Doc', type: 'url', value: 'https://app.clickup.com/ws1/v/dc/doc1' })
+    const deps = mkDeps([t])
+    expect((await runRos(deps)).updated).toBe(1)
+    expect(deps.calls.doc[0][0]).toMatchObject({ existingUrl: 'https://app.clickup.com/ws1/v/dc/doc1' })
+    expect(deps.calls.setField.map((c) => c[1])).toEqual([FP])
+  })
+
+  it('a ROS Doc failure is a warning; the Word file and comment still land', async () => {
+    const base = mkDeps([mkTask('a')])
+    const deps = mkDeps([mkTask('a')], {
+      clickup: {
+        ...base.clickup,
+        upsertRosDoc: async () => {
+          throw new Error('docs down')
+        },
+      },
+    })
+    const s = await runRos(deps)
+    expect(s.created).toBe(1)
+    expect(s.warnings.join(' ')).toContain('docs down')
+    // base.clickup's recorders write into base.calls
+    expect(base.calls.upload).toHaveLength(1)
+    expect(base.calls.comment).toHaveLength(1)
+  })
+
+  it('skips the Doc when the list has no ROS Doc field', async () => {
+    const base = mkDeps([mkTask('a')])
+    const deps = mkDeps([mkTask('a')], {
+      clickup: {
+        ...base.clickup,
+        findListFieldByName: async (_l, name) => (name === 'ROS Fingerprint' ? { id: FP } : name === 'ROS' ? { id: ROSF } : null),
+      },
+    })
+    expect((await runRos(deps)).created).toBe(1)
+    expect(deps.calls.doc).toHaveLength(0)
+  })
+
+  it('discrepancies are called out in the comment', async () => {
+    const deps = mkDeps([mkTask('a')], {
+      compose: async () => ({
+        ...LJBTC_EXEMPLAR,
+        discrepancies: [{ item: 'Headcount', clickup: '150', other: '200', source: 'Harrison email, Oct 12' }],
+      }),
+    })
+    await runRos(deps)
+    expect(String(deps.calls.comment[0][1])).toContain('DISCREPANCIES: Headcount (ClickUp: 150; Harrison email, Oct 12: 200)')
   })
 
   it('a failed mailbox is a warning and the task still proceeds', async () => {

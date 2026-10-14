@@ -9,6 +9,7 @@ const minimal = {
   entrance: 'Call the day-of contact on arrival.',
   callout: null,
   changes: null,
+  discrepancies: [],
   days: [{ heading: 'EVENT DAY — FRIDAY, OCTOBER 9', blocks: [{ time: '12:00 PM', title: 'Arrive', bullets: ['Park in lot B'] }] }],
   setTimes: null,
   breakdown: [{ item: 'Total coconuts', detail: '100' }],

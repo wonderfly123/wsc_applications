@@ -59,6 +59,8 @@ Every morning at 7 AM Pacific a cron writes or refreshes the Run of Show for eve
 - **No ROS yet** → Claude writes one from the task's custom fields, attachments, comments and any matching email threads in Harrison's inbox, renders it as a Word document in the LJBTC template layout, and puts it in the task's **ROS** field as `[ROS] <Event> v1.docx`. It posts a `[ROS]` comment listing the open items it could not confirm.
 - **ROS exists, nothing changed** → skipped. Nothing is written.
 - **ROS exists, something changed** (an intake field, a new attachment, a new comment, a new email) → Claude edits the existing document rather than rewriting it, keeps any wording people added by hand, adds a **What changed** section at the top, and replaces the file in the ROS field with the next version. The previous version is removed from the task so there is always exactly one file. The comment summarises the changes.
+- **Discrepancies** → Claude compares the ClickUp task against Harrison's emails and the current ROS (including hand edits). Wherever they disagree (headcount, times, location, coconut count, contacts and so on) it adds a red **DISCREPANCIES — RESOLVE BEFORE EVENT** section near the top listing both values and where each came from, and repeats them in the `[ROS]` comment. The body uses the most recent information, so the flag tells you which source to fix, usually the ClickUp field nobody updated.
+- **ClickUp Doc copy** → every new version is also written to a ClickUp Doc under the Events list, linked from the task's **ROS Doc** field, so the Word file and the Doc can be compared side by side. The Word file stays the source of truth: edits made in the Doc are not read back yet and are overwritten by the next version.
 
 **How to work with it.**
 
@@ -126,7 +128,7 @@ Copy for these lives in `lib/email.ts` and `lib/decal.ts`.
 | `CLICKUP_USER_ID_TRENT` | Assigns the `[ROS]` comment to Trent (ClickUp comment assignee, which notifies him), optional |
 | `ROS_DRY_RUN` | Unset or `false` (default) writes to ClickUp; `true` emails drafts to jordan@ instead |
 
-One-time ClickUp setup on the Events list: a **Text** custom field named exactly `ROS Fingerprint` and a **Files** custom field named exactly `ROS`. The route looks both up by name and fails fast if either is missing. Files go through ClickUp's v3 custom-field attachments endpoint because generic task attachments cannot be deleted via the API. The cron schedule lives in `vercel.json`; the code is under `lib/ros/` with the route at `app/api/cron/ros/route.ts`.
+One-time ClickUp setup on the Events list: a **Text** custom field named exactly `ROS Fingerprint` and a **Files** custom field named exactly `ROS`. The route looks both up by name and fails fast if either is missing. Files go through ClickUp's v3 custom-field attachments endpoint because generic task attachments cannot be deleted via the API. The cron schedule lives in `vercel.json`; the code is under `lib/ros/` with the route at `app/api/cron/ros/route.ts`. An optional **Website** field named `ROS Doc` turns on the ClickUp Doc copy (`lib/clickup-docs.ts`); without it the run skips the Doc.
 
 ### ClickUp
 

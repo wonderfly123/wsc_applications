@@ -16,6 +16,7 @@ import type { IRunOptions, IParagraphOptions } from 'docx'
 import type { RosDocument } from './types'
 
 const BLUE = '3D72B8'
+const RED = 'C00000'
 const BLACK = '000000'
 const NONE = { style: BorderStyle.NONE, size: 0, color: 'FFFFFF' }
 const LINE = (size: number, color: string) => ({ style: BorderStyle.SINGLE, size, color })
@@ -167,6 +168,27 @@ export async function renderRos(doc: RosDocument, logo?: StampLogo): Promise<Buf
     new Paragraph({ spacing: { before: 240 }, children: [bold('Entrance & Check-In: '), run(doc.entrance)] }),
   ]
   if (doc.callout) children.push(new Paragraph({ spacing: { before: 240 }, children: [bold(`**${doc.callout}**`)] }))
+  if (doc.discrepancies.length) {
+    children.push(
+      new Paragraph({
+        keepNext: true,
+        spacing: { before: 280, after: 120 },
+        children: [new TextRun({ text: 'DISCREPANCIES — RESOLVE BEFORE EVENT', bold: true, color: RED, size: 26 })],
+      }),
+      ...doc.discrepancies.map(
+        (d) =>
+          new Paragraph({
+            style: 'ListParagraph',
+            numbering: { reference: 'bullets', level: 0 },
+            spacing: { after: 20 },
+            children: [
+              run(`${d.item}: `, { bold: true, color: RED }),
+              run(`ClickUp says ${d.clickup}; ${d.source} says ${d.other}`, { color: RED }),
+            ],
+          })
+      )
+    )
+  }
   if (doc.changes && doc.changes.length) {
     children.push(section('WHAT CHANGED'), ...doc.changes.map(bullet))
   }

@@ -24,6 +24,7 @@ export const LJBTC_EXEMPLAR: RosDocument = {
     'Please call event contact to inform them of your ETA. Park between the two hotel properties, outside the Beach Club near the kayak loading area, and wheel everything through the side entry gate. LJBTC will have someone there to open the gate. If that route is tough, unload at the Spindrift Pavilion area and walk items over.',
   callout: 'FRONT DESK WILL DIRECT YOU WHERE TO GO AS WELL',
   changes: null,
+  discrepancies: [],
   days: [
     {
       heading: 'EVENT DAY — FRIDAY, OCTOBER 9',

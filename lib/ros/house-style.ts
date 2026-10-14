@@ -64,5 +64,8 @@ export const HOUSE_STYLE = {
     'Contacts always end with the Windansea line from the house style.',
     'Post-event block always includes the house-style post-event steps.',
     'In UPDATE mode, keep the existing wording and any content that is not contradicted by new inputs, and list every change in changes.',
+    'Compare the ClickUp fields and comments against the emails and, in UPDATE mode, the existing ROS. Every fact where they disagree (date, time, headcount, coconut count, location, contact, package, garnish, anything operational) goes in discrepancies with both values and where the other one came from. Never resolve a conflict silently.',
+    'In the body, use the most recent information: a dated email or a hand edit in the existing ROS usually beats a ClickUp field nobody updated. The discrepancy entry is how the team knows to fix the stale source.',
+    'A fact that is only missing from one source is not a discrepancy; put it in openItems if it is unconfirmed. Do not repeat previous discrepancies that the inputs now resolve.',
   ],
 } as const

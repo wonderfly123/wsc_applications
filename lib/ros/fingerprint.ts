@@ -3,13 +3,13 @@ import type { ClickUpTask, ClickUpComment } from './types'
 import { ROS_PREFIX } from './versions'
 
 /** Bump when the generator's output changes materially; forces every managed task to refresh once. */
-export const ROS_SCHEMA_VERSION = 1
+export const ROS_SCHEMA_VERSION = 2
 
 export interface FingerprintInputs {
   task: ClickUpTask
   comments: ClickUpComment[]
   messageIds: string[]
-  /** Fields the bot writes itself (ROS Fingerprint, ROS files field); never part of the hash. */
+  /** Fields the bot writes itself (ROS Fingerprint, ROS files field, ROS Doc link); never part of the hash. */
   excludeFieldIds: string[]
   schemaVersion?: number
 }

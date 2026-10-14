@@ -11,6 +11,7 @@ import {
   setTextField,
   downloadAttachment,
 } from '@/lib/clickup'
+import { upsertRosDoc } from '@/lib/clickup-docs'
 import { searchAllMailboxes } from '@/lib/ros/mail'
 import { composeRos } from '@/lib/ros/compose'
 import { renderRos } from '@/lib/ros/render'
@@ -51,6 +52,7 @@ function buildDeps(): RosDeps {
       postComment,
       setTextField,
       downloadAttachment,
+      upsertRosDoc,
     },
     searchMail: (opts) => searchAllMailboxes(opts),
     compose: (inputs) => composeRos(inputs),
