@@ -142,6 +142,20 @@ export async function sendDecalOrderEmail(params: {
   })
 }
 
+// Morning event-gaps digest goes to the people who can fix the ClickUp fields
+const GAPS_RECIPIENTS = [EVENT_LEAD_EMAIL, SMTP_USER]
+
+/** Morning event-gaps digest. Dry run sends it to Jordan only. */
+export async function sendGapsDigest(params: { subject: string; html: string; dryRun: boolean }) {
+  const transporter = getTransporter()
+  await transporter.sendMail({
+    from: `WSC Event Check <${SMTP_USER}>`,
+    to: params.dryRun ? ALERT_EMAIL : GAPS_RECIPIENTS,
+    subject: params.dryRun ? `[dry run] ${params.subject}` : params.subject,
+    html: params.html,
+  })
+}
+
 /**
  * Dry-run delivery for the ROS cron: the generated file goes to Jordan instead
  * of ClickUp, with the comment that would have been posted.
