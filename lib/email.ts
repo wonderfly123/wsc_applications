@@ -1,10 +1,10 @@
 import nodemailer from 'nodemailer'
 import { DECAL_RECIPIENT, DECAL_CC, DECAL_REPLY_TO } from './decal'
 
-const SMTP_USER = 'harrison@windanseacoconuts.com'
+const SMTP_USER = 'harrison@windandseacoconuts.com'
 
 // Event Lead, CC'd on client intake emails
-const EVENT_LEAD_EMAIL = 'trent@windanseacoconuts.com'
+const EVENT_LEAD_EMAIL = 'trent@windandseacoconuts.com'
 
 function getTransporter() {
   const pass = process.env.SMTP_PASS
@@ -18,7 +18,7 @@ function getTransporter() {
   })
 }
 
-const ALERT_EMAIL = 'jordan@windanseacoconuts.com'
+const ALERT_EMAIL = 'jordan@windandseacoconuts.com'
 
 export async function sendErrorAlert(params: {
   source: string

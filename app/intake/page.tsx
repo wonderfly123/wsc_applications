@@ -31,8 +31,8 @@ export default function IntakeIndexPage() {
           Each client receives a unique intake form link via email when their event is confirmed.
           If you can&apos;t find your link, check your inbox for an email from Windansea Coconuts
           or reach out to{' '}
-          <a href="mailto:harrison@windanseacoconuts.com" className="underline text-[#8b6914]">
-            harrison@windanseacoconuts.com
+          <a href="mailto:harrison@windandseacoconuts.com" className="underline text-[#8b6914]">
+            harrison@windandseacoconuts.com
           </a>.
         </p>
       </div>

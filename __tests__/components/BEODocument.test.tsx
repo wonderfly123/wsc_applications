@@ -83,8 +83,8 @@ describe('BEODocument', () => {
 
   it('renders footer with three separate items', () => {
     render(<BEODocument data={sampleData} taskId="abc123" />)
-    expect(screen.getByText('windanseacoconuts.com')).toBeDefined()
-    expect(screen.getByText('harrison@windanseacoconuts.com')).toBeDefined()
+    expect(screen.getByText('windandseacoconuts.com')).toBeDefined()
+    expect(screen.getByText('harrison@windandseacoconuts.com')).toBeDefined()
     expect(screen.getByText('Confidential')).toBeDefined()
   })
 

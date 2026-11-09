@@ -4,7 +4,7 @@
  */
 
 export const DECAL_RECIPIENT = 'marcusbhoskins@gmail.com'
-export const DECAL_CC = 'trent@windanseacoconuts.com'
+export const DECAL_CC = 'trent@windandseacoconuts.com'
 // Replies from Marcus go to Trent, not the person who submitted the form
 export const DECAL_REPLY_TO = DECAL_CC
 

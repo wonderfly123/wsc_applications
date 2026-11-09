@@ -227,10 +227,10 @@ describe('runRos', () => {
 
   it('a failed mailbox is a warning and the task still proceeds', async () => {
     const deps = mkDeps([mkTask('a')], {
-      searchMail: async () => ({ excerpts: [], failedMailboxes: ['trent@windanseacoconuts.com'] }),
+      searchMail: async () => ({ excerpts: [], failedMailboxes: ['trent@windandseacoconuts.com'] }),
     })
     const s = await runRos(deps)
-    expect(s.warnings.join(' ')).toContain('trent@windanseacoconuts.com')
+    expect(s.warnings.join(' ')).toContain('trent@windandseacoconuts.com')
     expect(s.created).toBe(1)
   })
 })

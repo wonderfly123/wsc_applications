@@ -231,7 +231,7 @@ function OrderForm({ password, onUnauthorized }: { password: string; onUnauthori
           </div>
           <div>
             <label className={labelClass} htmlFor="email">Your email</label>
-            <input id="email" type="email" className={inputClass} value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@windanseacoconuts.com" required />
+            <input id="email" type="email" className={inputClass} value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@windandseacoconuts.com" required />
           </div>
         </div>
 

@@ -5,8 +5,8 @@ export default function Home() {
         <p className="text-lg font-[family-name:var(--font-cormorant)]">Windansea Coconuts</p>
         <p className="text-sm mt-2">
           Please reach out to us at{' '}
-          <a href="mailto:harrison@windanseacoconuts.com" className="underline text-[#8b6914]">
-            harrison@windanseacoconuts.com
+          <a href="mailto:harrison@windandseacoconuts.com" className="underline text-[#8b6914]">
+            harrison@windandseacoconuts.com
           </a>
           {' '}with any questions.
         </p>

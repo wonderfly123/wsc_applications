@@ -5,7 +5,7 @@ import { DecalOrder } from '@/lib/decal'
 
 const order: DecalOrder = {
   name: 'Jordan Millhausen',
-  email: 'jordan@windanseacoconuts.com',
+  email: 'jordan@windandseacoconuts.com',
   job: 'Day in the Stoke 🥥',
   size: '40',
   quantity: 4,

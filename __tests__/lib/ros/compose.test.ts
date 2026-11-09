@@ -16,11 +16,11 @@ const inputs: ComposeInputs = {
   comments: [{ id: 'c', comment_text: 'Client confirmed 750', date: '1' }],
   emails: [
     {
-      mailbox: 'harrison@windanseacoconuts.com',
+      mailbox: 'harrison@windandseacoconuts.com',
       messageId: '<m1>',
       date: '2026-10-01T00:00:00Z',
       from: 'rj@olukai.com',
-      to: 'harrison@windanseacoconuts.com',
+      to: 'harrison@windandseacoconuts.com',
       subject: 'Load in',
       body: 'Use the Field 3 entrance',
     },

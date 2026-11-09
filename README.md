@@ -44,7 +44,7 @@ Fill in name, email, job or event name, decal size (40" full cart panel or 20" c
 
 ### 5. Error alerts
 
-If any webhook or form submission fails, an alert email goes to **jordan@windanseacoconuts.com** with the error and the payload that caused it, so nothing fails silently.
+If any webhook or form submission fails, an alert email goes to **jordan@windandseacoconuts.com** with the error and the payload that caused it, so nothing fails silently.
 
 ---
 
@@ -106,14 +106,14 @@ Manual run for one task: `GET /api/cron/ros?taskId=<id>&force=1` with `Authoriza
 
 ### Email senders
 
-All mail goes out through Gmail SMTP as `harrison@windanseacoconuts.com` using `SMTP_PASS`.
+All mail goes out through Gmail SMTP as `harrison@windandseacoconuts.com` using `SMTP_PASS`.
 
 | Email | To | CC | Reply-To |
 |-------|----|----|----------|
-| Client welcome / intake link | Client | trent@windanseacoconuts.com | (default) |
-| Decal order | marcusbhoskins@gmail.com | trent@windanseacoconuts.com | trent@windanseacoconuts.com |
-| Missing deal fields (Pipedrive webhook) | harrison@, jordan@, trent@windanseacoconuts.com | | (default) |
-| Error alert | jordan@windanseacoconuts.com | — | — |
+| Client welcome / intake link | Client | trent@windandseacoconuts.com | (default) |
+| Decal order | marcusbhoskins@gmail.com | trent@windandseacoconuts.com | trent@windandseacoconuts.com |
+| Missing deal fields (Pipedrive webhook) | harrison@, jordan@, trent@windandseacoconuts.com | | (default) |
+| Error alert | jordan@windandseacoconuts.com | — | — |
 
 Copy for these lives in `lib/email.ts` and `lib/decal.ts`.
 
@@ -197,7 +197,7 @@ Set these in Vercel (Production) and in `.env.local` for development. `.env*.loc
 |----------|---------|-------------|
 | `CLICKUP_API_KEY` | Everything | ClickUp personal API token for the Windansea Coconuts account |
 | `CLICKUP_LIST_ID` | Pipedrive webhook | Events list ID |
-| `SMTP_PASS` | All email | Google Workspace app password for harrison@windanseacoconuts.com |
+| `SMTP_PASS` | All email | Google Workspace app password for harrison@windandseacoconuts.com |
 | `SQUARE_TOKEN` | Square webhook | Square access token, used to fetch the invoice's order and line items |
 | `SQUARE_WEBHOOK_SIGNATURE_KEY` | Square webhook | Signature key from the Square webhook subscription |
 | `DECAL_FORM_PASSWORD` | Decal form | Shared password for `/decal` |

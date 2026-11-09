@@ -24,8 +24,8 @@ export default async function IntakePage({
           <p className="text-[15px] text-[#878774] font-[family-name:var(--font-jost)] leading-relaxed">
             We couldn&apos;t find the event this link belongs to. Please use the link from your welcome
             email, or contact{' '}
-            <a href="mailto:harrison@windanseacoconuts.com" className="underline text-[#8b6914]">
-              harrison@windanseacoconuts.com
+            <a href="mailto:harrison@windandseacoconuts.com" className="underline text-[#8b6914]">
+              harrison@windandseacoconuts.com
             </a>{' '}
             and we&apos;ll send you a new one.
           </p>

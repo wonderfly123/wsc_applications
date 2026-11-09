@@ -9,7 +9,7 @@ import {
 
 const valid = {
   name: 'Jordan Millhausen',
-  email: 'jordan@windanseacoconuts.com',
+  email: 'jordan@windandseacoconuts.com',
   job: 'Miramar activation',
   size: '40',
   quantity: '3',

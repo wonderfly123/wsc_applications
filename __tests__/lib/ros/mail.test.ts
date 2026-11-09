@@ -50,7 +50,7 @@ describe('searchMailbox', () => {
               date: new Date(Date.UTC(2026, 0, 1) + uid * 86_400_000),
               subject: `S${uid}`,
               from: [{ address: 'rj@olukai.com' }],
-              to: [{ address: 'harrison@windanseacoconuts.com' }],
+              to: [{ address: 'harrison@windandseacoconuts.com' }],
             },
             source: Buffer.from(`Subject: S${uid}\r\n\r\nBody ${uid}\r\n`),
           }
@@ -59,20 +59,20 @@ describe('searchMailbox', () => {
       logout: vi.fn(async () => {}),
     }
     const out = await searchMailbox(
-      { user: 'harrison@windanseacoconuts.com', pass: 'p', clientEmail: 'rj@olukai.com', titles: ['Palm Tree'], since: new Date() },
+      { user: 'harrison@windandseacoconuts.com', pass: 'p', clientEmail: 'rj@olukai.com', titles: ['Palm Tree'], since: new Date() },
       () => fake
     )
     expect(out).toHaveLength(30)
     expect(out[0].messageId).toBe('<m40@x>')
     expect(out[0].body).toContain('Body 40')
-    expect(out[0].mailbox).toBe('harrison@windanseacoconuts.com')
+    expect(out[0].mailbox).toBe('harrison@windandseacoconuts.com')
     expect(fake.logout).toHaveBeenCalled()
   })
 })
 
 describe('configuredMailboxes', () => {
   it('includes Harrison with SMTP_PASS and Trent only when IMAP_PASS_TRENT is set', () => {
-    expect(configuredMailboxes({ SMTP_PASS: 'h' })).toEqual([{ user: 'harrison@windanseacoconuts.com', pass: 'h' }])
+    expect(configuredMailboxes({ SMTP_PASS: 'h' })).toEqual([{ user: 'harrison@windandseacoconuts.com', pass: 'h' }])
     expect(configuredMailboxes({ SMTP_PASS: 'h', IMAP_PASS_TRENT: 't' })).toHaveLength(2)
     expect(configuredMailboxes({})).toEqual([])
   })

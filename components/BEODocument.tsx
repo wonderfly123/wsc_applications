@@ -186,8 +186,8 @@ export function BEODocument({ data, taskId }: { data: BEOData; taskId: string })
 
       {/* Footer */}
       <div className="mx-14 py-[18px] border-t border-[#e0ddd4] flex justify-between items-center">
-        <span className="text-[10px] tracking-[0.1em] text-[#aaa9a4] font-[family-name:var(--font-jost)]">windanseacoconuts.com</span>
-        <span className="text-[10px] tracking-[0.1em] text-[#aaa9a4] font-[family-name:var(--font-jost)]">harrison@windanseacoconuts.com</span>
+        <span className="text-[10px] tracking-[0.1em] text-[#aaa9a4] font-[family-name:var(--font-jost)]">windandseacoconuts.com</span>
+        <span className="text-[10px] tracking-[0.1em] text-[#aaa9a4] font-[family-name:var(--font-jost)]">harrison@windandseacoconuts.com</span>
         <span className="text-[10px] tracking-[0.1em] text-[#aaa9a4] font-[family-name:var(--font-jost)]">Confidential</span>
       </div>
     </div>

@@ -109,8 +109,8 @@ export async function searchMailbox(opts: SearchOpts, factory: ImapFactory = def
 /** Mailboxes we have passwords for. Harrison reuses the SMTP app password. */
 export function configuredMailboxes(env: Record<string, string | undefined> = process.env): MailboxCreds[] {
   const out: MailboxCreds[] = []
-  if (env.SMTP_PASS) out.push({ user: 'harrison@windanseacoconuts.com', pass: env.SMTP_PASS })
-  if (env.IMAP_PASS_TRENT) out.push({ user: 'trent@windanseacoconuts.com', pass: env.IMAP_PASS_TRENT })
+  if (env.SMTP_PASS) out.push({ user: 'harrison@windandseacoconuts.com', pass: env.SMTP_PASS })
+  if (env.IMAP_PASS_TRENT) out.push({ user: 'trent@windandseacoconuts.com', pass: env.IMAP_PASS_TRENT })
   return out
 }
 
