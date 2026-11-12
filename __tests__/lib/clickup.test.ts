@@ -114,6 +114,28 @@ describe('fetchTask', () => {
     )
   })
 
+  it('leaves Run of Show files out of the BEO attachments', async () => {
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: () =>
+        Promise.resolve({
+          ...mockClickUpTask,
+          custom_fields: [
+            ...mockClickUpTask.custom_fields,
+            { id: 'ros-field', name: 'ROS', type: 'attachment', value: [{ id: 'att-2', title: 'edited by hand.docx', url: 'https://x/2' }] },
+          ],
+          attachments: [
+            { id: 'att-1', title: '[ROS] Some Event v1.docx', url: 'https://x/1', mimetype: '' },
+            { id: 'att-2', title: 'edited by hand.docx', url: 'https://x/2', mimetype: '' },
+            { id: 'att-3', title: 'floorplan.pdf', url: 'https://x/3', mimetype: 'application/pdf' },
+          ],
+        }),
+    })
+
+    const result = await fetchTask('abc123')
+    expect(result!.attachments.map((a) => a.title)).toEqual(['floorplan.pdf'])
+  })
+
   it('returns null when API returns non-ok response', async () => {
     global.fetch = vi.fn().mockResolvedValue({
       ok: false,

@@ -114,7 +114,7 @@ export function BEODocument({ data, taskId }: { data: BEOData; taskId: string })
           {isSandcastle ? null : (
             <FieldRow last={!hasPreOpened}>
               <Field label="Coconuts Ready at Service Start" value={data.readyBy} />
-              <Field label="Setup Provided" value={data.setupProvided} last />
+              <Field label="Setup Provided (by customer)"value={data.setupProvided} last />
             </FieldRow>
           )}
           {hasPreOpened && (

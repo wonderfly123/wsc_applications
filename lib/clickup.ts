@@ -1,4 +1,8 @@
 import { BEOData, BEOAttachment, FIELD_MAP, ATTACHMENT_FIELDS } from './types'
+import { ROS_PREFIX } from './ros/versions'
+
+/** Name of the ClickUp Files field the ROS cron writes to (see lib/ros/run.ts). */
+const ROS_FILES_FIELD_NAME = 'ROS'
 import { INTAKE_FIELDS, TIMEZONE_MAP, fromUtcEpoch, formatForDisplay } from './intake-fields'
 import type { ClickUpTask, ClickUpComment } from './ros/types'
 
@@ -310,12 +314,21 @@ export async function fetchTask(taskId: string): Promise<BEOData | null> {
     data.teardownTime = '\u2014'
   }
 
+  // The Run of Show is internal: keep it off the client-facing BEO. Files in
+  // the "ROS" Files field can be re-uploaded under any name, so match them by
+  // id/url as well as by the [ROS] filename prefix.
+  const rosField = (task.custom_fields ?? []).find((f: { name?: string }) => f.name === ROS_FILES_FIELD_NAME)
+  const rosFiles: Array<{ id?: string; url?: string }> = Array.isArray(rosField?.value) ? rosField.value : []
+  const rosIds = new Set(rosFiles.map((f) => f.id).filter(Boolean))
+  const rosUrls = new Set(rosFiles.map((f) => f.url).filter(Boolean))
+
   // Also check task-level attachments for prefixed uploads
   if (task.attachments && Array.isArray(task.attachments)) {
     for (const att of task.attachments) {
       const title = att.title || att.name || ''
       const url = att.url || ''
       const mimetype = att.mimetype || ''
+      if (title.startsWith(ROS_PREFIX) || rosIds.has(att.id) || rosUrls.has(url)) continue
       if (title.startsWith('[STAMP LOGO]')) {
         data.attachments.push({ title, url, mimetype, category: 'Stamp Logo' })
       } else if (title.startsWith('[DELIVERY MAP]')) {
